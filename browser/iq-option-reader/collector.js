@@ -6,7 +6,12 @@ export const DEFAULT_SELECTORS = Object.freeze({
   payout: ['[data-test="payout"]', '[data-testid="payout"]'],
   candleInterval: ['[data-test="candle-interval"]', '[data-testid="candle-interval"]'],
   expiry: ['[data-test="expiration"]', '[data-testid="expiration"]'],
-  timestamp: ['time[datetime]', '[data-test="traderoom-time"]'],
+  timestamp: [
+    '[data-test="market-data-timestamp"]',
+    '[data-testid="market-data-timestamp"]',
+    '[data-test="quote-timestamp"]',
+    '[data-testid="quote-timestamp"]',
+  ],
   mode: ['[data-test="instrument-type"]', '[data-testid="instrument-type"]'],
 });
 
@@ -28,6 +33,10 @@ const duration = (value) => {
   if (!match) return null;
   return Number(match[1]) * ({ s: 1, m: 60, h: 3600 })[match[2].toLowerCase()];
 };
+const verifiedCollectorTimestamp = (value) => {
+  const timestamp = value.trim();
+  return timestamp && Number.isFinite(Date.parse(timestamp)) ? timestamp : "";
+};
 
 export class IqOptionTraderoomCollector {
   #lastFingerprint = "";
@@ -48,19 +57,19 @@ export class IqOptionTraderoomCollector {
       const payout = decimal(text(first(this.root, this.selectors.payout)));
       const interval = duration(text(first(this.root, this.selectors.candleInterval)));
       const expiry = duration(text(first(this.root, this.selectors.expiry)));
-      const timestamp = text(first(this.root, this.selectors.timestamp));
+      const timestamp = verifiedCollectorTimestamp(text(first(this.root, this.selectors.timestamp)));
       const modeText = text(first(this.root, this.selectors.mode)).toLowerCase();
       const marketType = /\botc\b/i.test(asset) ? "otc" : /\bnormal\b/i.test(asset) ? "normal" : "unknown";
       const tradingMode = /\bblitz\b/.test(modeText) ? "blitz" : /\bbinary\b/.test(modeText) ? "binary" : "unknown";
-      const fingerprint = JSON.stringify([asset, price, payout, interval, expiry, timestamp, modeText]);
-      const hasData = Boolean(asset || timestamp || price !== null || payout !== null);
+      const fingerprint = JSON.stringify([asset, price, timestamp]);
+      const hasMarketData = Boolean(asset && price !== null);
 
-      if (hasData && fingerprint !== this.#lastFingerprint) {
+      if (hasMarketData && fingerprint !== this.#lastFingerprint) {
         this.#lastFingerprint = fingerprint;
         this.#lastChangeAt = now;
       }
-      const freshness = this.#lastChangeAt === null ? null : now - this.#lastChangeAt;
-      const status = !hasData ? "unavailable" : freshness !== null && freshness > this.staleAfterMs ? "stale" : "live";
+      const freshness = hasMarketData && this.#lastChangeAt !== null ? now - this.#lastChangeAt : null;
+      const status = !hasMarketData ? "unavailable" : freshness !== null && freshness > this.staleAfterMs ? "stale" : "live";
 
       this.#snapshot = normalizeSnapshot({
         asset,

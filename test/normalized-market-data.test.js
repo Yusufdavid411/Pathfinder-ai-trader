@@ -19,6 +19,32 @@ test("normalization rejects guesses and coercion", () => {
   assert.equal(value.status, "unavailable");
 });
 
+test("normalization requires market data before reporting live status", () => {
+  const value = normalizeSnapshot({ timestamp: "2026-01-01T00:00:00Z", freshness_ms: 0, status: "live" });
+  assert.equal(value.timestamp, "2026-01-01T00:00:00Z");
+  assert.equal(value.freshness_ms, null);
+  assert.equal(value.status, "unavailable");
+});
+
+test("normalization rejects malformed timestamps", () => {
+  const value = normalizeSnapshot({ asset: "EUR/USD", price: 1.2, timestamp: "soon", freshness_ms: 0, status: "live" });
+  assert.equal(value.timestamp, "");
+  assert.equal(value.freshness_ms, null);
+  assert.equal(value.status, "unavailable");
+});
+
+test("normalization derives freshness only from verified market timestamps", () => {
+  const value = normalizeSnapshot({
+    asset: "EUR/USD",
+    price: 1.2,
+    timestamp: "2026-01-01T00:00:00Z",
+    status: "live",
+  }, Date.parse("2026-01-01T00:00:02Z"));
+
+  assert.equal(value.freshness_ms, 2000);
+  assert.equal(value.status, "live");
+});
+
 test("adapter exposes only its most recent normalized snapshot", () => {
   const adapter = new IqOptionMarketDataAdapter();
   const value = adapter.ingest({ asset: "EUR/USD (OTC)", market_type: "otc", price: 1.2, status: "live" });

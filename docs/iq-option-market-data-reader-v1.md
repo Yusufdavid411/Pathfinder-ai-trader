@@ -19,7 +19,11 @@ or OTPs, reverse-engineer authentication, bypass security, or expose any trading
 payment, deposit, or withdrawal action. The manifest declares no extension API
 permissions; its content-script scope is limited to IQ Option HTTPS pages. It
 does not persist or transmit data. Parsing failures produce null/`unknown` values
-and a clean console error rather than inferred data.
+and a clean console error rather than inferred data. A snapshot is only reported
+as available when it contains genuine market data: a visible asset and numeric
+quote price. Freshness is based only on quote-bearing market data changes or a
+verified market-data timestamp; clocks, expiry countdowns, payout changes, and
+malformed timestamps never make a quote fresh.
 
 ## Desktop testing
 

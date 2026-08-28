@@ -31,25 +31,36 @@ const nonNegativeOrNull = (value) => {
   const number = finiteOrNull(value);
   return number !== null && number >= 0 ? number : null;
 };
+const verifiedTimestamp = (value) => {
+  const timestamp = typeof value === "string" ? value.trim() : "";
+  return timestamp && Number.isFinite(Date.parse(timestamp)) ? timestamp : "";
+};
 
 /** Drop unexpected/unverified values rather than coercing or guessing them. */
 function normalizeSnapshot(candidate = {}, receivedAt = Date.now()) {
-  const timestamp = typeof candidate.timestamp === "string" ? candidate.timestamp : "";
+  const asset = typeof candidate.asset === "string" ? candidate.asset.trim() : "";
+  const price = finiteOrNull(candidate.price);
+  const timestamp = verifiedTimestamp(candidate.timestamp);
+  const hasMalformedTimestamp = Boolean(candidate.timestamp && !timestamp);
   const freshness = nonNegativeOrNull(candidate.freshness_ms);
-  const status = STATUSES.has(candidate.status) ? candidate.status : "unavailable";
+  const hasMarketData = Boolean(asset && price !== null);
+  const requestedStatus = STATUSES.has(candidate.status) ? candidate.status : "unavailable";
+  const status = hasMarketData && !hasMalformedTimestamp ? requestedStatus : "unavailable";
+  const timestampFreshness =
+    timestamp && hasMarketData ? Math.max(0, receivedAt - Date.parse(timestamp)) : null;
 
   return Object.freeze({
     broker: "iq_option",
-    asset: typeof candidate.asset === "string" ? candidate.asset.trim() : "",
+    asset,
     market_type: MARKET_TYPES.has(candidate.market_type) ? candidate.market_type : "unknown",
     trading_mode: TRADING_MODES.has(candidate.trading_mode) ? candidate.trading_mode : "unknown",
-    price: finiteOrNull(candidate.price),
+    price,
     payout_percent: nonNegativeOrNull(candidate.payout_percent),
     candle_interval_seconds: nonNegativeOrNull(candidate.candle_interval_seconds),
     expiry_seconds: nonNegativeOrNull(candidate.expiry_seconds),
     timestamp,
     source: IQ_OPTION_SOURCE,
-    freshness_ms: freshness === null && timestamp ? Math.max(0, receivedAt - Date.parse(timestamp)) || 0 : freshness,
+    freshness_ms: hasMarketData && !hasMalformedTimestamp ? freshness ?? timestampFreshness : null,
     status,
   });
 }
@@ -61,7 +72,12 @@ const DEFAULT_SELECTORS = Object.freeze({
   payout: ['[data-test="payout"]', '[data-testid="payout"]'],
   candleInterval: ['[data-test="candle-interval"]', '[data-testid="candle-interval"]'],
   expiry: ['[data-test="expiration"]', '[data-testid="expiration"]'],
-  timestamp: ['time[datetime]', '[data-test="traderoom-time"]'],
+  timestamp: [
+    '[data-test="market-data-timestamp"]',
+    '[data-testid="market-data-timestamp"]',
+    '[data-test="quote-timestamp"]',
+    '[data-testid="quote-timestamp"]',
+  ],
   mode: ['[data-test="instrument-type"]', '[data-testid="instrument-type"]'],
 });
 
@@ -83,6 +99,10 @@ const duration = (value) => {
   if (!match) return null;
   return Number(match[1]) * ({ s: 1, m: 60, h: 3600 })[match[2].toLowerCase()];
 };
+const verifiedCollectorTimestamp = (value) => {
+  const timestamp = value.trim();
+  return timestamp && Number.isFinite(Date.parse(timestamp)) ? timestamp : "";
+};
 
 class IqOptionTraderoomCollector {
   #lastFingerprint = "";
@@ -103,19 +123,19 @@ class IqOptionTraderoomCollector {
       const payout = decimal(text(first(this.root, this.selectors.payout)));
       const interval = duration(text(first(this.root, this.selectors.candleInterval)));
       const expiry = duration(text(first(this.root, this.selectors.expiry)));
-      const timestamp = text(first(this.root, this.selectors.timestamp));
+      const timestamp = verifiedCollectorTimestamp(text(first(this.root, this.selectors.timestamp)));
       const modeText = text(first(this.root, this.selectors.mode)).toLowerCase();
       const marketType = /\botc\b/i.test(asset) ? "otc" : /\bnormal\b/i.test(asset) ? "normal" : "unknown";
       const tradingMode = /\bblitz\b/.test(modeText) ? "blitz" : /\bbinary\b/.test(modeText) ? "binary" : "unknown";
-      const fingerprint = JSON.stringify([asset, price, payout, interval, expiry, timestamp, modeText]);
-      const hasData = Boolean(asset || timestamp || price !== null || payout !== null);
+      const fingerprint = JSON.stringify([asset, price, timestamp]);
+      const hasMarketData = Boolean(asset && price !== null);
 
-      if (hasData && fingerprint !== this.#lastFingerprint) {
+      if (hasMarketData && fingerprint !== this.#lastFingerprint) {
         this.#lastFingerprint = fingerprint;
         this.#lastChangeAt = now;
       }
-      const freshness = this.#lastChangeAt === null ? null : now - this.#lastChangeAt;
-      const status = !hasData ? "unavailable" : freshness !== null && freshness > this.staleAfterMs ? "stale" : "live";
+      const freshness = hasMarketData && this.#lastChangeAt !== null ? now - this.#lastChangeAt : null;
+      const status = !hasMarketData ? "unavailable" : freshness !== null && freshness > this.staleAfterMs ? "stale" : "live";
 
       this.#snapshot = normalizeSnapshot({
         asset,
