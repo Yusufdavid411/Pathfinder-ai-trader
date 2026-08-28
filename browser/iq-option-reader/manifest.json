@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Pathfinder IQ Option Read-Only Reader",
+  "version": "0.1.0",
+  "description": "Displays safely visible IQ Option traderoom values in a local debug panel.",
+  "content_scripts": [{
+    "matches": ["https://*.iqoption.com/*"],
+    "js": ["content-script.bundle.js"],
+    "run_at": "document_idle"
+  }]
+}
