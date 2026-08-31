@@ -1,0 +1,11 @@
+{
+  "name": "pathfinder-ai-trader",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:extension": "node scripts/build-extension.js",
+    "test": "node --test",
+    "lint": "find browser broker_engine market_engine scripts test -name '*.js' -print0 | xargs -0 -n1 node --check"
+  }
+}
