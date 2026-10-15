@@ -42,11 +42,11 @@ Market Data Engine
 - `/status` - Shows system readiness and execution lock status.
 - `/help` - Lists available commands.
 - `/watchlist` - Shows the placeholder watchlist.
-- `/market_status` - Shows market-reader readiness.
+- `/market_status` - Shows the configured provider chain and engine readiness.
 - `/risk` - Shows risk-gate readiness.
 - `/mode` - Shows the currently allowed operating mode.
 - `/compliance` - Explains broker execution restrictions.
-- `/signals` - Shows why signal generation is not active yet.
+- `/signals` - Shows candidate-decision and outcome-tracking readiness.
 
 ## Current Hosting
 
@@ -63,11 +63,12 @@ verification secret, and allowed chat IDs.
 
 PAT will prioritize Telegram before the mobile app and dashboard:
 
-1. Build the Telegram command and button experience.
-2. Add a compliant market-data provider.
-3. Generate explainable manual-review candidate trade ideas.
-4. Track whether a user acted, ignored, or rejected a candidate idea.
-5. Compare the candidate idea against later market outcome.
+1. Completed: build the Telegram command and button experience.
+2. Completed: add a compliant market-data provider.
+3. Completed: generate explainable manual-review candidate trade ideas.
+4. Implemented locally: track whether a user acted, ignored, or rejected a
+   candidate idea. Firebase deployment is pending.
+5. Next: compare the candidate idea against later market outcome.
 6. Sync the same history into web/mobile once user accounts are added.
 
 The bot may produce candidate ideas only after live market data, market quality,
@@ -83,10 +84,16 @@ The Firebase webhook now includes:
 - Provider fallback chain.
 - Candle-based scanner/ranker.
 - Manual-review trade-card renderer.
+- Firestore candidate repository.
+- Chat-bound Taken, Ignored, and Rejected decision actions.
+- Immutable first-decision transaction.
 
 The scanner is deployed. Twelve Data is configured and verified with live
 1-minute FX candles. Alpha Vantage is configured as a secondary slot, but its
 current key does not unlock `FX_INTRADAY`.
+
+The candidate-decision continuation is tested locally. It is not part of the
+currently deployed webhook until the next Firebase deployment.
 
 ## Compliance Gate
 

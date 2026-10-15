@@ -1,7 +1,20 @@
+import { getApps, initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import { onRequest } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 
-import { buildTelegramReply, parseAllowedChatIds } from './patCommands.js';
+import {
+  createPresentedCandidate,
+  FirestoreCandidateRepository,
+  renderCandidateDecisionResult,
+  type CandidateRepository,
+} from './candidateTracking.js';
+import {
+  buildTelegramReply,
+  candidateDecisionKeyboard,
+  parseAllowedChatIds,
+  parseCandidateDecisionCallbackData,
+} from './patCommands.js';
 import {
   AlphaVantageFxProvider,
   FallbackMarketDataProvider,
@@ -20,6 +33,7 @@ const telegramWebhookSecret = defineSecret('TELEGRAM_WEBHOOK_SECRET');
 const telegramAllowedChatIds = defineSecret('TELEGRAM_ALLOWED_CHAT_IDS');
 const alphaVantageApiKey = defineSecret('ALPHA_VANTAGE_API_KEY');
 const twelveDataApiKey = defineSecret('TWELVE_DATA_API_KEY');
+let candidateRepository: CandidateRepository | undefined;
 
 export const telegramWebhook = onRequest(
   {
@@ -54,26 +68,43 @@ export const telegramWebhook = onRequest(
     }
 
     const allowedChatIds = parseAllowedChatIds(telegramAllowedChatIds.value().trim());
+    const accessDenied = allowedChatIds.size > 0 && !allowedChatIds.has(incoming.chatId);
+    const candidateDecision = incoming.callbackData
+      ? parseCandidateDecisionCallbackData(incoming.callbackData)
+      : null;
+    let callbackAnswer = 'PAT received your request.';
     let reply = buildTelegramReply(incoming, allowedChatIds);
 
-    if (
-      incoming.text.trim().toLowerCase() === '/scan' &&
-      !(allowedChatIds.size > 0 && !allowedChatIds.has(incoming.chatId))
-    ) {
+    if (!accessDenied && candidateDecision) {
+      const decisionResult = await getCandidateRepository().recordDecision({
+        candidateId: candidateDecision.candidateId,
+        telegramChatId: incoming.chatId,
+        decision: candidateDecision.decision,
+        decidedAt: new Date(),
+      });
       reply = {
-        text: renderMarketScanResult(
-          await scanMarket(
-            new FallbackMarketDataProvider([
-              new TwelveDataFxProvider(twelveDataApiKey.value()),
-              new AlphaVantageFxProvider(alphaVantageApiKey.value()),
-            ]),
-          ),
-        ),
+        text: renderCandidateDecisionResult(decisionResult, candidateDecision.decision),
       };
+      callbackAnswer =
+        decisionResult.outcome === 'recorded' ? 'Candidate decision saved.' : 'Decision unchanged.';
+    } else if (!accessDenied && incoming.text.trim().toLowerCase() === '/scan') {
+      const scanResult = await scanMarket(
+        new FallbackMarketDataProvider([
+          new TwelveDataFxProvider(twelveDataApiKey.value()),
+          new AlphaVantageFxProvider(alphaVantageApiKey.value()),
+        ]),
+      );
+      reply = { text: renderMarketScanResult(scanResult) };
+
+      if (scanResult.ok) {
+        const presentedCandidate = createPresentedCandidate(incoming.chatId, scanResult);
+        await getCandidateRepository().savePresented(presentedCandidate);
+        reply.replyMarkup = candidateDecisionKeyboard(presentedCandidate.id);
+      }
     }
 
     if (incoming.callbackQueryId) {
-      await answerCallbackQuery(telegramBotToken.value(), incoming.callbackQueryId);
+      await answerCallbackQuery(telegramBotToken.value(), incoming.callbackQueryId, callbackAnswer);
     }
 
     await sendTelegramMessage(
@@ -85,6 +116,18 @@ export const telegramWebhook = onRequest(
     response.status(200).send('ok');
   },
 );
+
+function getCandidateRepository(): CandidateRepository {
+  if (!candidateRepository) {
+    if (getApps().length === 0) {
+      initializeApp();
+    }
+
+    candidateRepository = new FirestoreCandidateRepository(getFirestore());
+  }
+
+  return candidateRepository;
+}
 
 export const syncTelegramCommandMenu = onRequest(
   {

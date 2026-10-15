@@ -4,8 +4,10 @@ import test from 'node:test';
 import {
   buildTelegramReply,
   callbackDataToCommand,
+  candidateDecisionKeyboard,
   commandMenuText,
   parseAllowedChatIds,
+  parseCandidateDecisionCallbackData,
   respondToTelegramMessage,
 } from './patCommands.js';
 
@@ -25,12 +27,13 @@ test('help command lists PAT commands', () => {
   assert.match(response, /\/signals - Show signal engine status/);
 });
 
-test('scan command refuses to fabricate signals without market data', () => {
+test('scan command describes live manual-review behavior without claiming execution', () => {
   const response = respondToTelegramMessage({ chatId: 42, text: '/scan' }, new Set([42]));
 
   assert.match(response, /Scanner button: connected/);
-  assert.match(response, /Live market data: not connected yet/);
+  assert.match(response, /configured provider chain/);
   assert.match(response, /PAT will not fabricate BUY\/SELL signals/);
+  assert.match(response, /Execution remains disabled/);
 });
 
 test('start reply includes inline scanner buttons', () => {
@@ -44,7 +47,21 @@ test('start reply includes inline scanner buttons', () => {
 test('callback data maps to PAT commands', () => {
   assert.equal(callbackDataToCommand('PAT_SCAN'), '/scan');
   assert.equal(callbackDataToCommand('PAT_STATUS'), '/status');
+  assert.equal(callbackDataToCommand('PAT_SIGNAL:accepted:12345678'), '/candidate_decision');
   assert.equal(callbackDataToCommand('UNKNOWN'), null);
+});
+
+test('candidate decision callbacks stay within Telegram limits and parse safely', () => {
+  const candidateId = '26d5039e-90e7-4d2f-8ca1-3f40d1812083';
+  const keyboard = candidateDecisionKeyboard(candidateId);
+  const callbackData = keyboard.inline_keyboard[0][0].callback_data;
+
+  assert.equal(callbackData.length <= 64, true);
+  assert.deepEqual(parseCandidateDecisionCallbackData(callbackData), {
+    candidateId,
+    decision: 'accepted',
+  });
+  assert.equal(parseCandidateDecisionCallbackData('PAT_SIGNAL:accepted:../../bad'), null);
 });
 
 test('private bot rejects unknown chat IDs', () => {

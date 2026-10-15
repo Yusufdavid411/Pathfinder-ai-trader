@@ -7,6 +7,14 @@ export type IncomingTelegramMessage = {
   chatId: number;
   text: string;
   callbackQueryId?: string;
+  callbackData?: string;
+};
+
+export type CandidateDecision = 'accepted' | 'ignored' | 'rejected';
+
+export type CandidateDecisionAction = {
+  candidateId: string;
+  decision: CandidateDecision;
 };
 
 export const supportedCommands: readonly BotCommand[] = [
@@ -55,6 +63,55 @@ export const mainMenuKeyboard: InlineKeyboardMarkup = {
   ],
 };
 
+export function candidateDecisionKeyboard(candidateId: string): InlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: 'Taken',
+          callback_data: candidateDecisionCallbackData('accepted', candidateId),
+        },
+        {
+          text: 'Ignored',
+          callback_data: candidateDecisionCallbackData('ignored', candidateId),
+        },
+      ],
+      [
+        {
+          text: 'Rejected',
+          callback_data: candidateDecisionCallbackData('rejected', candidateId),
+        },
+      ],
+    ],
+  };
+}
+
+export function candidateDecisionCallbackData(
+  decision: CandidateDecision,
+  candidateId: string,
+): string {
+  const callbackData = `PAT_SIGNAL:${decision}:${candidateId}`;
+  if (callbackData.length > 64) {
+    throw new Error('Telegram callback data must not exceed 64 bytes.');
+  }
+
+  return callbackData;
+}
+
+export function parseCandidateDecisionCallbackData(
+  callbackData: string,
+): CandidateDecisionAction | null {
+  const match = /^PAT_SIGNAL:(accepted|ignored|rejected):([A-Za-z0-9_-]{8,40})$/.exec(callbackData);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    decision: match[1] as CandidateDecision,
+    candidateId: match[2],
+  };
+}
+
 export function commandMenuText(): string {
   return [
     'Available commands:',
@@ -73,7 +130,11 @@ export function callbackDataToCommand(data: string): string | null {
     PAT_HELP: '/help',
   };
 
-  return actions[data] ?? null;
+  if (actions[data]) {
+    return actions[data];
+  }
+
+  return parseCandidateDecisionCallbackData(data) ? '/candidate_decision' : null;
 }
 
 export function parseAllowedChatIds(rawValue: string | undefined): ReadonlySet<number> {
@@ -112,8 +173,10 @@ export function respondToTelegramMessage(
     return [
       'PAT status: cloud webhook mode.',
       'Telegram webhook: online through Firebase when deployed.',
-      'Market reading: foundation pending.',
-      'Signals: not enabled yet.',
+      'Market reading: live provider chain configured.',
+      'Scanner: manual-review candidates enabled.',
+      'Candidate decisions: Taken, Ignored, and Rejected tracking enabled.',
+      'Outcome resolution: pending.',
       'IQ Option execution: disabled by compliance gate.',
     ].join('\n');
   }
@@ -122,10 +185,10 @@ export function respondToTelegramMessage(
     return [
       'PAT Market Scan',
       'Scanner button: connected.',
-      'Live market data: not connected yet.',
-      'Trade recommendation: unavailable until a verified data provider, market-quality checks, confidence scoring, and risk gates are active.',
+      'Live market data: requested through the configured provider chain.',
+      'Eligible results are stored for manual decision and outcome tracking.',
       'PAT will not fabricate BUY/SELL signals or guaranteed results.',
-      'Next build target: connect a compliant market-data provider, then generate manual-review candidate signals.',
+      'Execution remains disabled.',
     ].join('\n');
   }
 
@@ -137,17 +200,18 @@ export function respondToTelegramMessage(
     return [
       'PAT Watchlist',
       ...defaultWatchlist.map((asset) => `- ${asset}`),
-      'Market data is not connected yet.',
+      'The cloud scanner checks these pairs through the configured provider chain.',
     ].join('\n');
   }
 
   if (command === '/market_status') {
     return [
       'Market Reader Status',
-      'Data source: not connected yet.',
+      'Primary data source: Twelve Data FX candles.',
+      'Fallback data source: Alpha Vantage when the endpoint is available.',
       'Observer Engine: pending Stage 6.',
       'Market Quality: pending Stage 8.',
-      'Current action: build market data foundation next.',
+      'Execution: disabled.',
     ].join('\n');
   }
 
@@ -183,9 +247,11 @@ export function respondToTelegramMessage(
   if (command === '/signals') {
     return [
       'Signal Engine Status',
-      'Signals: not enabled yet.',
-      'Reason: market data, observer, quality, confidence, and risk layers must be built first.',
+      'Manual-review scanner candidates: enabled.',
+      'Candidate decision tracking: enabled.',
+      'Outcome resolution and calibrated confidence: pending.',
       'PAT will never fabricate signals or guaranteed results.',
+      'IQ Option execution: disabled.',
     ].join('\n');
   }
 

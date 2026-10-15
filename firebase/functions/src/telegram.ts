@@ -62,7 +62,7 @@ export function extractIncomingTelegramInteraction(
     return null;
   }
 
-  return { chatId, text: command, callbackQueryId };
+  return { chatId, text: command, callbackQueryId, callbackData };
 }
 
 export async function sendTelegramMessage(

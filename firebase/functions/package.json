@@ -12,6 +12,7 @@
     "test": "npm run build && node --test lib/**/*.test.js"
   },
   "dependencies": {
+    "firebase-admin": "^14.4.0",
     "firebase-functions": "^7.0.0"
   },
   "devDependencies": {

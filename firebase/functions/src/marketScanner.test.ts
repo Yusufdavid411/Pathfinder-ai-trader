@@ -35,6 +35,7 @@ test('scanner returns a manual-review candidate from rising candle data', async 
 
   assert.equal(result.ok, true);
   if (result.ok) {
+    assert.equal(result.provider, 'test');
     assert.equal(result.candidate.direction, 'BUY');
     assert.ok(result.candidate.signalStrength >= 65);
   }

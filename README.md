@@ -10,6 +10,8 @@ broker execution disabled.
 - Live FX candle retrieval through Twelve Data with Alpha Vantage fallback.
 - Explainable, manual-review market candidates based on EMA, RSI, momentum,
   and candle-quality rules.
+- Firestore-backed Telegram candidate decisions for Taken, Ignored, and
+  Rejected responses, with broker execution locked off.
 - Trusted FastAPI authentication/profile boundary and Firebase adapters.
 - React/Vite dashboard and Flutter application shells.
 - Read-only IQ Option traderoom DOM reader with a local debug panel. It does

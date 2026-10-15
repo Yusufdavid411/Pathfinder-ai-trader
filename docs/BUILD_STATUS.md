@@ -1,8 +1,13 @@
 Current Stage:
-Telegram-First Interface Foundation
+Telegram-First Candidate Decision Tracking
 
 Status:
 Telegram-first interface foundation is implemented, verified, command-synced with Telegram, deployed to Firebase Cloud Functions, registered as the Telegram webhook, and confirmed live from the phone. The bot no longer depends on the laptop staying on.
+
+The Taken/Ignored/Rejected candidate-tracking continuation was implemented and
+tested locally on 2026-10-15. It is committed separately from the previously
+deployed scanner and still requires a Firebase Functions deployment before it
+is live in Telegram.
 
 Completed:
 
@@ -72,13 +77,21 @@ Completed:
 - Verified Alpha Vantage live response: key works, but intraday FX candles require premium access.
 - Deployed multi-provider scanner chain to Firebase.
 - Verified deployed live-data `/scan` path returned HTTP `200` after Twelve Data setup.
+- Recovered and merged the existing read-only IQ Option market-reader GitHub history without replacing the Telegram/Firebase platform.
+- Added Firestore-backed `signals/{signalId}` candidate records.
+- Added Taken, Ignored, and Rejected inline actions to successful Telegram scan cards.
+- Bound candidate decisions to the Telegram chat that received the card.
+- Made the first decision immutable through a Firestore transaction.
+- Marked ignored/rejected candidates for later shadow-outcome resolution.
+- Persisted provider, entry window, expiry, source candle, evidence, and execution-disabled state for each candidate.
+- Updated stale Telegram status text to reflect the configured live provider chain and manual-review scanner.
 
 Tests:
 
 - Passed: `npm run format:check`.
 - Passed: `npm run lint`.
 - Passed: `npm run build:dashboard`.
-- Passed: `npm run test:functions` - 15 Firebase Functions tests.
+- Passed: `npm run test:functions` - 21 Firebase Functions tests.
 - Passed: `services/api` pytest suite with `.venv/Scripts/python.exe -m pytest` - 4 tests.
 - Passed: `services/notification_engine` pytest suite with `.venv/Scripts/python.exe -m pytest` - 17 tests.
 - Passed: live Telegram polling cycle with `.venv/Scripts/python.exe -m notification_engine.cli poll-once`.
@@ -99,6 +112,8 @@ Known Issues:
 - Telegram cloud delivery is configured through Firebase Cloud Functions and Firebase Secret Manager.
 - Telegram bot is currently public. Anyone who finds or opens the bot can send commands, which may increase Firebase/Telegram usage.
 - `/scan` is wired to the live scanner path and Twelve Data is returning 1-minute FX candles. Candidate output depends on whether current market conditions pass scanner thresholds.
+- Candidate decisions are implemented locally but not yet deployed to the live webhook.
+- Outcome resolution is not implemented yet; new records remain `pending` until the resolver milestone.
 - Firebase Blaze billing is enabled for the project; cloud function use may create small usage charges.
 - Direct PowerShell script execution is blocked by the local execution policy; run scripts through `powershell.exe -ExecutionPolicy Bypass -File ...` or change the local execution policy manually.
 
@@ -112,10 +127,12 @@ Manual Actions Required:
 - Optionally upgrade Alpha Vantage so `FX_INTRADAY` is available as a backup provider.
 - Monitor Firebase billing/usage in the Firebase console.
 - Add rate limiting or user-account linking before broad public launch.
+- Deploy the candidate-tracking Functions update and Firestore rules after reviewing the production change.
 
 Next Stage:
 
 - Finish remaining Stage 2 Firebase Auth/client configuration once OAuth and app config values are available.
 - After Stage 2 live setup is fully verified, continue to Stage 3 - Subscription + Entitlements.
-- Continue Telegram-first product work by connecting approved market-data observation, still without IQ Option auto-execution.
-- Next Telegram product step: choose and connect a compliant market-data provider so `/scan` can evaluate real market candles instead of returning readiness status.
+- Next Telegram product step: resolve candidates after expiry using later market candles.
+- Create shadow results for ignored/rejected candidates while keeping them separate from manually accepted candidates.
+- Add history/reporting only after outcome resolution is deterministic and tested.

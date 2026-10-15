@@ -40,7 +40,7 @@ export const defaultScanPairs: readonly CurrencyPair[] = [
 
 export async function scanMarket(provider: MarketDataProvider): Promise<MarketScanResult> {
   const generatedAt = new Date();
-  const candidates: TradeCandidate[] = [];
+  const candidates: Array<{ candidate: TradeCandidate; provider: string }> = [];
   const errors: string[] = [];
 
   for (const pair of defaultScanPairs) {
@@ -57,7 +57,7 @@ export async function scanMarket(provider: MarketDataProvider): Promise<MarketSc
 
     const candidate = analyzeCandles(response.candles, pair);
     if (candidate.direction !== 'WAIT') {
-      candidates.push(candidate);
+      candidates.push({ candidate, provider: response.provider });
     }
   }
 
@@ -73,13 +73,15 @@ export async function scanMarket(provider: MarketDataProvider): Promise<MarketSc
     };
   }
 
-  const candidate = candidates.sort((left, right) => right.signalStrength - left.signalStrength)[0];
+  const selected = candidates.sort(
+    (left, right) => right.candidate.signalStrength - left.candidate.signalStrength,
+  )[0];
 
   return {
     ok: true,
-    provider: provider.name,
+    provider: selected.provider,
     generatedAt,
-    candidate,
+    candidate: selected.candidate,
   };
 }
 
