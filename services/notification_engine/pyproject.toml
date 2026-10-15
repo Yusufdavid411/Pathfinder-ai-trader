@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=70.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pathfinder-notification-engine"
+version = "0.1.0"
+description = "Notification and Telegram channel foundation for PathFinder AI Trader."
+requires-python = ">=3.12,<4.0"
+dependencies = [
+  "httpx>=0.28.0,<1.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.0.0,<10.0.0"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["notification_engine"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88

@@ -1,0 +1,29 @@
+{
+  "name": "pathfinder-ai-trader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Foundation monorepo for PathFinder AI Trader.",
+  "type": "module",
+  "workspaces": [
+    "apps/dashboard",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:dashboard": "npm --workspace apps/dashboard run dev",
+    "build:dashboard": "npm --workspace apps/dashboard run build",
+    "build:functions": "npm --prefix firebase/functions run build",
+    "test:functions": "npm --prefix firebase/functions run test",
+    "lint": "eslint apps/dashboard/src packages eslint.config.js",
+    "lint:dashboard": "npm --workspace apps/dashboard run lint",
+    "format": "prettier \"*.{md,json}\" \".github/**/*.{yml,yaml}\" \"apps/**/*.{ts,tsx,css,html,json,md,yaml,yml}\" \"docs/**/*.md\" \"firebase/**/*.{json,md,ts}\" \"packages/**/*.{ts,json,md}\" \"scripts/**/*.md\" \"services/*/README.md\" \"tests/**/*.md\" --write",
+    "format:check": "prettier \"*.{md,json}\" \".github/**/*.{yml,yaml}\" \"apps/**/*.{ts,tsx,css,html,json,md,yaml,yml}\" \"docs/**/*.md\" \"firebase/**/*.{json,md,ts}\" \"packages/**/*.{ts,json,md}\" \"scripts/**/*.md\" \"services/*/README.md\" \"tests/**/*.md\" --check"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.0",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.67.0"
+  }
+}

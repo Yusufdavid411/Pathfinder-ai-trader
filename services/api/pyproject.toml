@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=70.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pathfinder-api"
+version = "0.1.0"
+description = "Trusted API backend for PathFinder AI Trader."
+requires-python = ">=3.12,<4.0"
+dependencies = [
+  "fastapi>=0.141.1,<1.0.0",
+  "firebase-admin>=7.2.0,<8.0.0",
+  "pydantic[email]>=2.12.0,<3.0.0",
+  "uvicorn[standard]>=0.35.0,<1.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28.0,<1.0.0",
+  "pytest>=9.0.0,<10.0.0"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.setuptools]
+py-modules = ["dependencies", "main"]
+
+[tool.setuptools.packages.find]
+include = ["core", "models", "repositories", "routers", "security"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88

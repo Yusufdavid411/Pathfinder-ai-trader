@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=70.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pathfinder-ai-engine"
+version = "0.1.0"
+description = "FastAPI foundation shell for PathFinder AI Trader."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.141.1,<1.0.0",
+  "uvicorn[standard]>=0.35.0,<1.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "black>=26.0.0,<27.0.0",
+  "isort>=8.0.1,<9.0.0",
+  "pytest>=9.0.0,<10.0.0"
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88

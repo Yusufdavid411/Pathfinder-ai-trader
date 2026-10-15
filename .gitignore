@@ -1,0 +1,50 @@
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+!.env.example
+.runtime/
+.codex-remote-attachments/
+
+# Node / web
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock
+apps/mobile/build/
+apps/mobile/.metadata
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+services/ai_engine/.venv/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+firebase/functions/lib/
+
+# IDE
+.idea/
+.vscode/

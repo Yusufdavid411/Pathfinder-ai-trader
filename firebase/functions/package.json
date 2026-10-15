@@ -1,0 +1,20 @@
+{
+  "name": "pathfinder-firebase-functions",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Firebase Cloud Functions for PathFinder AI Trader.",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test lib/**/*.test.js"
+  },
+  "dependencies": {
+    "firebase-functions": "^7.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

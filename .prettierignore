@@ -1,0 +1,6 @@
+docs/CODEX_MASTER_BUILD_GUIDE.md
+**/dist/**
+**/node_modules/**
+**/.venv/**
+**/.pytest_cache/**
+**/*.tsbuildinfo
