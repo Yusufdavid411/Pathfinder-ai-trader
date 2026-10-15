@@ -2,9 +2,9 @@ name: Foundation CI
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
-    branches: [main]
+    branches: [master, main]
 
 jobs:
   web:
@@ -28,6 +28,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Test read-only market reader
+        run: npm run test:extension
 
       - name: Build dashboard
         run: npm run build:dashboard

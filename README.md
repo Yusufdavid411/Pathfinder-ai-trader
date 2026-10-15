@@ -1,84 +1,74 @@
 # PathFinder AI Trader
 
-PathFinder AI Trader (PAT) is a production-grade foundation for a modular AI-powered trading platform.
+PathFinder AI Trader (PAT) is a safety-first, modular trading-analysis platform.
+The current product uses Telegram as its first control surface and keeps all
+broker execution disabled.
 
-This repository is intentionally foundation-only. It does not contain trading decisions, AI models, broker integrations, or executable trading behavior.
+## Current Capabilities
 
-## Monorepo Layout
+- Firebase-hosted Telegram webhook and command menu.
+- Live FX candle retrieval through Twelve Data with Alpha Vantage fallback.
+- Explainable, manual-review market candidates based on EMA, RSI, momentum,
+  and candle-quality rules.
+- Trusted FastAPI authentication/profile boundary and Firebase adapters.
+- React/Vite dashboard and Flutter application shells.
+- Read-only IQ Option traderoom DOM reader with a local debug panel. It does
+  not read credentials, inspect private traffic, or place trades.
+
+See [the current build status](docs/BUILD_STATUS.md),
+[the Telegram-first product plan](docs/TELEGRAM_FIRST_PRODUCT_PLAN.md), and
+[the IQ Option reader guide](docs/iq-option-market-data-reader-v1.md) for the
+implemented boundaries and next milestones.
+
+## Repository Layout
 
 ```text
 pathfinder-ai-trader/
-  apps/
-    mobile/
-    dashboard/
-  services/
-    ai_engine/
-    broker_engine/
-    learning_engine/
-  packages/
-    shared/
-    models/
-    utils/
-  firebase/
-  docs/
-  scripts/
-  tests/
-  .github/
+  apps/                 Flutter and React/Vite clients
+  services/             API, AI, broker, learning, and notification services
+  firebase/             Cloud Functions, Firestore, Auth, and Storage setup
+  packages/             Shared TypeScript contracts and utilities
+  browser/              Read-only IQ Option browser reader
+  broker_engine/        IQ Option snapshot adapter
+  market_engine/        Market-data provider interface
+  docs/                 Architecture, plans, status, and setup guides
+  scripts/              Build and operational scripts
+  test/ and tests/      JavaScript and platform test suites
 ```
 
-## Current Stage
+## Local Checks
 
-The current stage establishes:
-
-- Clean Architecture boundaries.
-- Flutter mobile/desktop shell with Riverpod and GoRouter dependencies.
-- React + Vite + TypeScript dashboard shell with React Router.
-- Python 3.12 FastAPI service shell for the future AI Engine.
-- Firebase folder layout without Firebase initialization.
-- Shared package boundaries for future cross-platform models, constants, helpers, and types.
-- Formatting, linting, and CI placeholders.
-
-## Getting Started
-
-Install the required toolchains first:
-
-- Flutter stable SDK.
-- Node.js and npm.
-- Python 3.12.
-- Firebase CLI, when Firebase initialization begins.
-
-Then install web dependencies:
+Install Node dependencies:
 
 ```bash
 npm install
 ```
 
-Run the dashboard:
+Run the principal JavaScript and TypeScript checks:
 
 ```bash
-npm run dev:dashboard
+npm run format:check
+npm run lint
+npm test
+npm run test:functions
+npm run build:dashboard
 ```
 
-Run the Flutter app after installing Flutter:
+Run the Python suites with the repository virtual environment on Windows:
+
+```powershell
+.venv\Scripts\python.exe -m pytest services\api\tests services\notification_engine\tests
+```
+
+Build the read-only browser extension bundle:
 
 ```bash
-cd apps/mobile
-flutter pub get
-flutter run
+npm run build:extension
 ```
 
-Run the AI Engine shell after installing Python 3.12:
+## Safety Boundary
 
-```bash
-cd services/ai_engine
-python -m venv .venv
-pip install -e ".[dev]"
-uvicorn main:app --reload
-```
-
-## Guardrails
-
-- Do not add trading logic at this stage.
-- Do not add AI inference or training logic at this stage.
-- Do not connect to IQ Option or any broker at this stage.
-- Do not initialize Firebase until environment ownership and project settings are confirmed.
+- Trade candidates are for manual review and are not financial advice.
+- IQ Option and other broker execution remain disabled.
+- The IQ Option reader only observes explicitly visible page values.
+- Secrets belong in ignored local environment files or Firebase Secret Manager.
