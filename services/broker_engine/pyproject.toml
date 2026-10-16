@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=70.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pathfinder-broker-engine"
+version = "0.1.0"
+description = "Signed local Demo execution bridge for PathFinder AI Trader."
+requires-python = ">=3.12,<4.0"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=9.0.0,<10.0.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["broker_engine"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]

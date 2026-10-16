@@ -17,6 +17,11 @@ export type CandidateDecisionAction = {
   decision: CandidateDecision;
 };
 
+export type TradingControlAction =
+  | { type: 'mode'; mode: 'DEMO' | 'REAL' }
+  | { type: 'stake'; stake: number }
+  | { type: 'arm' | 'disarm' | 'emergency_stop' | 'resume' | 'execution_status' };
+
 export const supportedCommands: readonly BotCommand[] = [
   { command: 'start', description: 'Start PathFinder AI Trader' },
   { command: 'scan', description: 'Scan for candidate trade setups' },
@@ -25,7 +30,13 @@ export const supportedCommands: readonly BotCommand[] = [
   { command: 'watchlist', description: 'Show the current watchlist' },
   { command: 'market_status', description: 'Show market-reader status' },
   { command: 'risk', description: 'Show risk gate status' },
-  { command: 'mode', description: 'Show current trading mode' },
+  { command: 'mode', description: 'Choose Demo or locked Real target' },
+  { command: 'stake', description: 'Set demo stake, for example /stake 1' },
+  { command: 'arm', description: 'Arm approval-based Demo execution' },
+  { command: 'disarm', description: 'Disarm new execution requests' },
+  { command: 'emergency_stop', description: 'Stop and disarm execution' },
+  { command: 'resume', description: 'Clear the Demo emergency stop' },
+  { command: 'execution_status', description: 'Show controls and bridge status' },
   { command: 'compliance', description: 'Show execution compliance gate' },
   { command: 'signals', description: 'Show signal engine status' },
 ];
@@ -57,6 +68,15 @@ export const mainMenuKeyboard: InlineKeyboardMarkup = {
       { text: 'Risk Gate', callback_data: 'PAT_RISK' },
     ],
     [
+      { text: 'Trading Mode', callback_data: 'PAT_MODE' },
+      { text: 'Execution Status', callback_data: 'PAT_EXECUTION_STATUS' },
+    ],
+    [
+      { text: 'Arm Demo', callback_data: 'PAT_ARM' },
+      { text: 'Disarm', callback_data: 'PAT_DISARM' },
+    ],
+    [{ text: 'EMERGENCY STOP', callback_data: 'PAT_EMERGENCY_STOP' }],
+    [
       { text: 'Compliance', callback_data: 'PAT_COMPLIANCE' },
       { text: 'Help', callback_data: 'PAT_HELP' },
     ],
@@ -68,7 +88,7 @@ export function candidateDecisionKeyboard(candidateId: string): InlineKeyboardMa
     inline_keyboard: [
       [
         {
-          text: 'Taken',
+          text: 'Accept & Queue',
           callback_data: candidateDecisionCallbackData('accepted', candidateId),
         },
         {
@@ -85,6 +105,45 @@ export function candidateDecisionKeyboard(candidateId: string): InlineKeyboardMa
     ],
   };
 }
+
+export const modeKeyboard: InlineKeyboardMarkup = {
+  inline_keyboard: [
+    [
+      { text: 'Demo', callback_data: 'PAT_MODE:DEMO' },
+      { text: 'Real (Locked)', callback_data: 'PAT_MODE:REAL' },
+    ],
+    [
+      { text: 'Arm Demo', callback_data: 'PAT_ARM' },
+      { text: 'Disarm', callback_data: 'PAT_DISARM' },
+    ],
+  ],
+};
+
+export const stakeKeyboard: InlineKeyboardMarkup = {
+  inline_keyboard: [
+    [
+      { text: '$1', callback_data: 'PAT_STAKE:1' },
+      { text: '$2', callback_data: 'PAT_STAKE:2' },
+      { text: '$5', callback_data: 'PAT_STAKE:5' },
+      { text: '$10', callback_data: 'PAT_STAKE:10' },
+    ],
+    [{ text: 'Show Status', callback_data: 'PAT_EXECUTION_STATUS' }],
+  ],
+};
+
+export const executionControlKeyboard: InlineKeyboardMarkup = {
+  inline_keyboard: [
+    [
+      { text: 'Arm Demo', callback_data: 'PAT_ARM' },
+      { text: 'Disarm', callback_data: 'PAT_DISARM' },
+    ],
+    [
+      { text: 'Reset Demo Stop', callback_data: 'PAT_RESUME' },
+      { text: 'Status', callback_data: 'PAT_EXECUTION_STATUS' },
+    ],
+    [{ text: 'EMERGENCY STOP', callback_data: 'PAT_EMERGENCY_STOP' }],
+  ],
+};
 
 export function candidateDecisionCallbackData(
   decision: CandidateDecision,
@@ -112,6 +171,31 @@ export function parseCandidateDecisionCallbackData(
   };
 }
 
+export function parseTradingControlCallbackData(callbackData: string): TradingControlAction | null {
+  const mode = /^PAT_MODE:(DEMO|REAL)$/.exec(callbackData);
+  if (mode) {
+    return { type: 'mode', mode: mode[1] as 'DEMO' | 'REAL' };
+  }
+
+  const stake = /^PAT_STAKE:(1|2|5|10)$/.exec(callbackData);
+  if (stake) {
+    return { type: 'stake', stake: Number.parseInt(stake[1], 10) };
+  }
+
+  const actions: Record<
+    string,
+    'arm' | 'disarm' | 'emergency_stop' | 'resume' | 'execution_status'
+  > = {
+    PAT_ARM: 'arm',
+    PAT_DISARM: 'disarm',
+    PAT_EMERGENCY_STOP: 'emergency_stop',
+    PAT_RESUME: 'resume',
+    PAT_EXECUTION_STATUS: 'execution_status',
+  };
+  const type = actions[callbackData];
+  return type ? { type } : null;
+}
+
 export function commandMenuText(): string {
   return [
     'Available commands:',
@@ -132,6 +216,19 @@ export function callbackDataToCommand(data: string): string | null {
 
   if (actions[data]) {
     return actions[data];
+  }
+
+  const tradingAction = parseTradingControlCallbackData(data);
+  if (tradingAction) {
+    if (tradingAction.type === 'mode') {
+      return '/mode_selection';
+    }
+
+    if (tradingAction.type === 'stake') {
+      return '/stake_selection';
+    }
+
+    return `/${tradingAction.type}`;
   }
 
   return parseCandidateDecisionCallbackData(data) ? '/candidate_decision' : null;
@@ -163,8 +260,9 @@ export function respondToTelegramMessage(
   if (command === '/start') {
     return [
       'Welcome to PathFinder AI Trader.',
-      'Telegram is the first PAT control surface for alerts, manual review, and shadow-trading updates.',
-      'IQ Option auto-execution is disabled.',
+      'Telegram is the PAT control surface for scans, approvals, Demo execution, and results.',
+      'Demo execution requires /mode, /stake, /arm, and an explicit Accept.',
+      'Real IQ Option execution is locked until an authorized integration exists.',
       'Send /help to see what I can do.',
     ].join('\n');
   }
@@ -174,10 +272,11 @@ export function respondToTelegramMessage(
       'PAT status: cloud webhook mode.',
       'Telegram webhook: online through Firebase when deployed.',
       'Market reading: live provider chain configured.',
-      'Scanner: manual-review candidates enabled.',
+      'Scanner: approval-required candidates enabled.',
       'Candidate decisions: Taken, Ignored, and Rejected tracking enabled.',
       'Outcome resolution: pending.',
-      'IQ Option execution: disabled by compliance gate.',
+      'Pathfinder Demo bridge: use /execution_status.',
+      'Real IQ Option execution: locked by compliance gate.',
     ].join('\n');
   }
 
@@ -188,7 +287,7 @@ export function respondToTelegramMessage(
       'Live market data: requested through the configured provider chain.',
       'Eligible results are stored for manual decision and outcome tracking.',
       'PAT will not fabricate BUY/SELL signals or guaranteed results.',
-      'Execution remains disabled.',
+      'A scan cannot execute. Use Demo + /arm + Accept to queue a simulated bridge order.',
     ].join('\n');
   }
 
@@ -218,40 +317,41 @@ export function respondToTelegramMessage(
   if (command === '/risk') {
     return [
       'Risk Gate Status',
-      'Execution allowed: no.',
-      'Auto mode: off.',
-      'Capital protection: enforced by design.',
-      'Full Risk Engine: pending Stage 11.',
+      'Demo execution requires an explicit Accept for every candidate.',
+      'One active request and ten demo trades per day maximum.',
+      'Stake is capped at $10 in the current Demo release.',
+      'No Martingale or recovery staking.',
+      'Real execution remains locked.',
     ].join('\n');
   }
 
   if (command === '/mode') {
     return [
       'Trading Mode',
-      'Current mode: Signal/manual-review only.',
-      'Semi-automatic: unavailable.',
-      'Automatic: unavailable.',
-      'IQ Option execution: disabled.',
+      'Choose Demo or view the locked Real target.',
+      'Demo still requires /arm and Accept for every trade.',
+      'Use /execution_status to see the active state.',
     ].join('\n');
   }
 
   if (command === '/compliance') {
     return [
       'Compliance Gate',
-      'IQ Option auto-execution is disabled.',
-      'PAT will not log in to IQ Option, click trade buttons, or use unofficial execution paths.',
-      'Broker execution requires a compliant adapter, completed risk controls, audit logs, and explicit user opt-in.',
+      'Pathfinder never stores an IQ Option password, OTP, cookie, or session token.',
+      'The current local bridge executes only a Pathfinder simulation.',
+      'Real IQ Option execution requires written authorization and an approved integration method.',
     ].join('\n');
   }
 
   if (command === '/signals') {
     return [
       'Signal Engine Status',
-      'Manual-review scanner candidates: enabled.',
+      'Approval-required scanner candidates: enabled.',
       'Candidate decision tracking: enabled.',
       'Outcome resolution and calibrated confidence: pending.',
       'PAT will never fabricate signals or guaranteed results.',
-      'IQ Option execution: disabled.',
+      'Pathfinder Demo bridge: available when armed.',
+      'Real IQ Option execution: locked.',
     ].join('\n');
   }
 

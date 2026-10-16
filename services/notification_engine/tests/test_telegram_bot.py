@@ -45,6 +45,9 @@ def test_help_command_lists_real_pat_commands() -> None:
     assert "/scan - Scan for candidate trade setups" in response.text
     assert "/watchlist - Show the current watchlist" in response.text
     assert "/market_status - Show market-reader status" in response.text
+    assert "/arm - Arm approval-based Demo execution" in response.text
+    assert "/emergency_stop - Stop and disarm execution" in response.text
+    assert "/execution_status - Show controls and bridge status" in response.text
     assert "/signals - Show signal engine status" in response.text
 
 

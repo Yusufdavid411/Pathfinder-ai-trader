@@ -13,7 +13,7 @@
     "build:dashboard": "npm --workspace apps/dashboard run build",
     "build:functions": "npm --prefix firebase/functions run build",
     "build:extension": "node scripts/build-extension.js",
-    "test": "node --test",
+    "test": "npm run test:extension && npm run test:functions",
     "test:extension": "node --test test/*.test.js",
     "test:functions": "npm --prefix firebase/functions run test",
     "lint": "npm run lint:app && npm run lint:extension",

@@ -24,6 +24,7 @@ export type PresentedCandidate = {
   entryWindowAt: Date;
   expiresAt: Date;
   latestCandleAt: Date;
+  referencePrice: number;
   reasons: string[];
   status: 'presented';
 };
@@ -71,6 +72,7 @@ export function createPresentedCandidate(
     entryWindowAt,
     expiresAt,
     latestCandleAt: scanResult.candidate.latestCandleTime,
+    referencePrice: scanResult.candidate.latestClose,
     reasons: [...scanResult.candidate.reasons],
     status: 'presented',
   };
@@ -81,15 +83,17 @@ export function renderCandidateDecisionResult(
   requestedDecision: CandidateDecision,
 ): string {
   if (result.outcome === 'recorded') {
-    const shadowMessage =
+    const nextMessage =
       result.decision === 'accepted'
-        ? 'Outcome verification: pending.'
+        ? 'Approval saved. PAT is checking the execution gates.'
         : 'Shadow outcome tracking: marked for resolution.';
 
     return [
       `Candidate decision recorded: ${candidateDecisionLabel(result.decision)}.`,
-      shadowMessage,
-      'Execution: disabled. PAT did not place or verify a trade.',
+      nextMessage,
+      result.decision === 'accepted'
+        ? 'A trade is not considered placed until an execution receipt is returned.'
+        : 'No execution request was created.',
     ].join('\n');
   }
 
@@ -168,12 +172,15 @@ export class FirestoreCandidateRepository implements CandidateRepository {
       entry_window_at: candidate.entryWindowAt,
       expires_at: candidate.expiresAt,
       latest_candle_at: candidate.latestCandleAt,
+      reference_price: candidate.referencePrice,
       reasons: candidate.reasons,
       status: candidate.status,
       decision_at: null,
       outcome_status: 'pending',
       shadow_tracking_required: false,
       execution_enabled: false,
+      execution_status: 'not_requested',
+      real_order_placed: false,
     });
   }
 

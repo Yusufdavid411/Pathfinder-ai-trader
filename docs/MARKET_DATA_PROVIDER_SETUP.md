@@ -47,7 +47,8 @@ After the API key is active, `/scan` will:
 - Evaluate the configured currency pairs.
 - Rank candidate setups by signal strength.
 - Return a Telegram manual-review trade card.
-- Keep execution disabled.
+- Keep direct broker execution disabled; accepted candidates may enter only the
+  signed Pathfinder Demo simulation queue.
 
 The scanner must not claim guaranteed accuracy. It can produce candidate trade
 ideas only from real market data and only for manual review.

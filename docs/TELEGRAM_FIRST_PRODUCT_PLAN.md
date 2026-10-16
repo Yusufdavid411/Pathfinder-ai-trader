@@ -1,110 +1,74 @@
 # Telegram-First Product Plan
 
-Telegram is PAT's first lightweight control surface. It does not replace the full product.
+Telegram is PAT's first complete control surface. Market intelligence and risk
+state remain backend-owned so later web and mobile clients can use the same
+records.
 
-## What Changes
-
-- Users can receive PAT alerts in Telegram earlier than the full mobile/web product.
-- Telegram becomes the fastest path to test conversations, watchlists, manual-review alerts, and shadow-trading updates.
-- The intelligence stack remains backend-owned and broker-independent.
-- Telegram now runs through a Firebase Cloud Functions webhook, so the bot does
-  not depend on a local laptop process.
-- Telegram becomes the first product surface before mobile/web account polish:
-  buttons, scanner actions, manual-review trade ideas, signal tracking, and
-  later app synchronization will be proven here first.
-
-## What Does Not Change
-
-- Python remains the backend and service language.
-- React + Vite remains the dashboard stack.
-- Flutter remains the mobile/desktop stack.
-- IQ Option auto-execution remains disabled until a compliant integration path exists.
-
-## Intended Flow
+## Live Flow
 
 ```text
-Market Data Engine
-  -> Observer Engine
-  -> Market DNA
-  -> Market Quality
-  -> Confidence
-  -> Risk
-  -> Decision
-  -> Telegram Alert
-  -> Manual User Review
-  -> Outcome or Shadow Trade Recording
+Verified market candles
+  -> explainable scanner and gates
+  -> Telegram candidate
+  -> user presses Accept & Queue
+  -> Firestore signed request
+  -> local Pathfinder Demo bridge
+  -> Telegram simulation receipt
 ```
 
-## Current Telegram Commands
+The scan itself never queues an execution. Demo must be selected and armed, and
+each candidate requires a separate user acceptance before its entry window
+expires.
 
-- `/start` - Starts the PAT conversation.
-- `/scan` - Opens the scanner action path for candidate trade setups.
-- `/status` - Shows system readiness and execution lock status.
-- `/help` - Lists available commands.
-- `/watchlist` - Shows the placeholder watchlist.
-- `/market_status` - Shows the configured provider chain and engine readiness.
-- `/risk` - Shows risk-gate readiness.
-- `/mode` - Shows the currently allowed operating mode.
-- `/compliance` - Explains broker execution restrictions.
-- `/signals` - Shows candidate-decision and outcome-tracking readiness.
+## Commands
 
-## Current Hosting
+- `/start` - Open the main PAT control menu.
+- `/scan` - Scan live provider data for a genuine candidate.
+- `/mode` - Choose Demo or view the locked Real target.
+- `/stake 1` - Set the Demo stake from `$1` through `$10`.
+- `/arm` - Allow an accepted Demo candidate to enter the queue.
+- `/disarm` - Block new execution requests.
+- `/emergency_stop` - Disarm and block new bridge claims.
+- `/resume` - Clear the Demo emergency stop; execution remains disarmed.
+- `/execution_status` - Show controls, usage limits, and bridge heartbeat.
+- `/status`, `/risk`, `/watchlist`, `/market_status`, `/signals`, `/compliance`,
+  and `/help` - Inspect the remaining PAT surfaces.
 
-Telegram updates are registered to this Firebase-hosted webhook:
+## Hosting and Bridge
 
-```text
-https://telegramwebhook-anp4du33za-uc.a.run.app
-```
+Telegram updates are delivered to the Firebase-hosted `telegramWebhook`
+function. Candidate and execution state lives in Firestore. The local bridge
+polls protected Firebase endpoints, so this computer must be online for a
+queued Demo simulation to finish and return its Telegram receipt.
 
-The webhook uses Firebase Secret Manager for the Telegram bot token, webhook
-verification secret, and allowed chat IDs.
+## Implemented Safety Gates
 
-## Telegram-First Build Priority
+- Demo is the default; controls start disarmed.
+- Selecting a mode or changing a stake disarms execution.
+- Real cannot be armed.
+- Every execution request is bound to the Telegram chat and accepted candidate.
+- Every execution-critical field is HMAC-signed.
+- Requests are idempotent and single-use claim tokens are stored only as
+  hashes.
+- One active request per chat, ten requests per day, and a `$10` stake cap.
+- Entry and expiry windows are rechecked when the bridge claims a request.
+- Emergency stop blocks claims.
+- Firestore clients cannot access execution collections.
+- All current receipts state that no IQ Option order was placed.
 
-PAT will prioritize Telegram before the mobile app and dashboard:
+## IQ Option Boundary
 
-1. Completed: build the Telegram command and button experience.
-2. Completed: add a compliant market-data provider.
-3. Completed: generate explainable manual-review candidate trade ideas.
-4. Implemented locally: track whether a user acted, ignored, or rejected a
-   candidate idea. Firebase deployment is pending.
-5. Next: compare the candidate idea against later market outcome.
-6. Sync the same history into web/mobile once user accounts are added.
+Pathfinder Demo is a simulator, not an IQ Option Demo account. IQ Option Demo
+and Real execution remain locked because no authorized external order API is
+configured. PAT will not use an unofficial password-based library, capture a
+session, or automate the traderoom UI. A future authorized adapter can be added
+behind the signed queue while preserving the Telegram controls and audit trail.
 
-The bot may produce candidate ideas only after live market data, market quality,
-confidence, and risk gates exist. It must never invent signals to look active.
+## Next Milestones
 
-## Current Scanner Implementation
-
-The Firebase webhook now includes:
-
-- Market-data provider interface.
-- Alpha Vantage FX intraday adapter.
-- Twelve Data FX time-series adapter.
-- Provider fallback chain.
-- Candle-based scanner/ranker.
-- Manual-review trade-card renderer.
-- Firestore candidate repository.
-- Chat-bound Taken, Ignored, and Rejected decision actions.
-- Immutable first-decision transaction.
-
-The scanner is deployed. Twelve Data is configured and verified with live
-1-minute FX candles. Alpha Vantage is configured as a secondary slot, but its
-current key does not unlock `FX_INTRADAY`.
-
-The candidate-decision continuation is tested locally. It is not part of the
-currently deployed webhook until the next Firebase deployment.
-
-## Compliance Gate
-
-Telegram messages may notify, explain, and request manual review. They must not execute trades or automate the IQ Option website.
-
-Before any broker execution is considered, PAT requires:
-
-- A compliant broker integration path.
-- Demo-only enforcement during development.
-- Backend authorization.
-- Completed Risk Engine.
-- Emergency stop.
-- Audit logging.
-- Explicit user opt-in.
+1. Resolve candidate outcomes from later verified candles.
+2. Add `/history` and performance summaries.
+3. Add authenticated user and Telegram linking plus rate limiting.
+4. Synchronize history into the web and mobile apps.
+5. Add a real broker adapter only after provider authorization and compliance
+   review.

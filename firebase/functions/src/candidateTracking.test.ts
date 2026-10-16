@@ -18,6 +18,7 @@ const scanResult: MarketScanResult = {
     signalStrength: 82,
     expiryMinutes: 2,
     latestCandleTime: new Date('2026-10-15T11:59:00Z'),
+    latestClose: 1.10234,
     reasons: ['EMA trend favors BUY.'],
   },
 };
@@ -28,6 +29,7 @@ test('presented candidate stores entry and expiry timing without enabling execut
   assert.equal(candidate.asset, 'EUR/USD');
   assert.equal(candidate.provider, 'twelve_data');
   assert.equal(candidate.status, 'presented');
+  assert.equal(candidate.referencePrice, 1.10234);
   assert.equal(candidate.entryWindowAt.toISOString(), '2026-10-15T12:01:00.000Z');
   assert.equal(candidate.expiresAt.toISOString(), '2026-10-15T12:03:00.000Z');
 });
@@ -63,12 +65,12 @@ test('candidate decision is chat-bound and cannot be overwritten', async () => {
   assert.equal(repository.get(candidate.id)?.status, 'accepted');
 });
 
-test('decision response states that PAT did not execute or verify a trade', () => {
+test('accepted decision response waits for a separate execution receipt', () => {
   const message = renderCandidateDecisionResult(
     { outcome: 'recorded', decision: 'accepted' },
     'accepted',
   );
 
   assert.match(message, /Candidate decision recorded: Taken/);
-  assert.match(message, /did not place or verify a trade/);
+  assert.match(message, /not considered placed until an execution receipt/);
 });

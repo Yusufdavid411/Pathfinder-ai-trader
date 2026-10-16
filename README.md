@@ -1,8 +1,8 @@
 # PathFinder AI Trader
 
 PathFinder AI Trader (PAT) is a safety-first, modular trading-analysis platform.
-The current product uses Telegram as its first control surface and keeps all
-broker execution disabled.
+The current product uses Telegram as its first control surface. It supports an
+approval-based local Demo simulator while keeping real broker execution locked.
 
 ## Current Capabilities
 
@@ -10,8 +10,10 @@ broker execution disabled.
 - Live FX candle retrieval through Twelve Data with Alpha Vantage fallback.
 - Explainable, manual-review market candidates based on EMA, RSI, momentum,
   and candle-quality rules.
-- Firestore-backed Telegram candidate decisions for Taken, Ignored, and
-  Rejected responses, with broker execution locked off.
+- Firestore-backed Telegram candidate decisions and per-chat Demo controls for
+  account target, stake, arming, disarming, and emergency stop.
+- Signed execution queue and a local Pathfinder Demo bridge that returns
+  simulated receipts to Telegram after the user presses **Accept & Queue**.
 - Trusted FastAPI authentication/profile boundary and Firebase adapters.
 - React/Vite dashboard and Flutter application shells.
 - Read-only IQ Option traderoom DOM reader with a local debug panel. It does
@@ -59,7 +61,7 @@ npm run build:dashboard
 Run the Python suites with the repository virtual environment on Windows:
 
 ```powershell
-.venv\Scripts\python.exe -m pytest services\api\tests services\notification_engine\tests
+.venv\Scripts\python.exe -m pytest services\api\tests services\notification_engine\tests services\broker_engine\tests
 ```
 
 Build the read-only browser extension bundle:
@@ -68,9 +70,24 @@ Build the read-only browser extension bundle:
 npm run build:extension
 ```
 
+## Test the Telegram Demo Flow
+
+Keep this computer online, then start the local simulator:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File scripts\start_demo_bridge.ps1
+```
+
+In Telegram, send `/mode` and choose Demo, then `/stake 1`, `/arm`, and
+`/scan`. Press **Accept & Queue** only when the live scanner produces a genuine
+candidate. Use `/execution_status` to confirm that the bridge is online and
+`/emergency_stop` to stop new execution claims.
+
 ## Safety Boundary
 
 - Trade candidates are for manual review and are not financial advice.
-- IQ Option and other broker execution remain disabled.
+- Pathfinder Demo execution is a local simulation; it is not IQ Option Demo.
+- IQ Option Demo and Real execution remain disabled because an authorized order
+  API is not configured.
 - The IQ Option reader only observes explicitly visible page values.
 - Secrets belong in ignored local environment files or Firebase Secret Manager.

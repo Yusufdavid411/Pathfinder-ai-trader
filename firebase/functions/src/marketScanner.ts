@@ -13,6 +13,7 @@ export type TradeCandidate = {
   signalStrength: number;
   expiryMinutes: number;
   latestCandleTime: Date;
+  latestClose: number;
   reasons: string[];
 };
 
@@ -130,6 +131,7 @@ export function analyzeCandles(candles: MarketCandle[], pair: CurrencyPair): Tra
     signalStrength,
     expiryMinutes: 2,
     latestCandleTime: latest.timestamp,
+    latestClose: latest.close,
     reasons: buildReasons(direction, emaFast, emaSlow, momentum, rsi, recentBody, recentRange),
   };
 }
@@ -154,24 +156,26 @@ export function renderMarketScanResult(result: MarketScanResult): string {
 
   return [
     'PathFinder AI Trader',
-    'TRADE CANDIDATE - MANUAL REVIEW ONLY',
+    'TRADE CANDIDATE - APPROVAL REQUIRED',
     '',
     `${formatPair(candidate.pair)} (Live FX)`,
     `Expiry: ${candidate.expiryMinutes} minutes`,
     `Entry Window: ${formatTime(entryTime)}`,
     `Direction: ${candidate.direction}`,
     `Signal Strength: ${candidate.signalStrength}%`,
+    `Reference Price: ${candidate.latestClose}`,
     `Latest Candle: ${candidate.latestCandleTime.toISOString()}`,
     '',
     'Reasons:',
     ...candidate.reasons.map((reason) => `- ${reason}`),
     '',
-    'Recovery Levels:',
-    `Level 1 -> ${formatTime(martingaleOne)} (tracking only)`,
-    `Level 2 -> ${formatTime(martingaleTwo)} (tracking only)`,
-    `Level 3 -> ${formatTime(martingaleThree)} (tracking only)`,
+    'Observation checkpoints (no recovery staking):',
+    `Checkpoint 1 -> ${formatTime(martingaleOne)}`,
+    `Checkpoint 2 -> ${formatTime(martingaleTwo)}`,
+    `Checkpoint 3 -> ${formatTime(martingaleThree)}`,
     '',
-    'Execution: disabled. This is not financial advice.',
+    'Press Accept only after selecting Demo mode, setting a stake, and sending /arm.',
+    'Real IQ Option execution remains locked. This is not financial advice.',
   ].join('\n');
 }
 

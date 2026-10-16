@@ -20,6 +20,18 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /telegram_trading_controls/{chatId} {
+      allow read, write: if false;
+    }
+
+    match /execution_requests/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /system_runtime/{runtimeId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

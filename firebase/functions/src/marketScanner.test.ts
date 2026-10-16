@@ -38,15 +38,16 @@ test('scanner returns a manual-review candidate from rising candle data', async 
     assert.equal(result.provider, 'test');
     assert.equal(result.candidate.direction, 'BUY');
     assert.ok(result.candidate.signalStrength >= 65);
+    assert.ok(result.candidate.latestClose > 1.1);
   }
 });
 
-test('trade candidate rendering never claims execution', async () => {
+test('trade candidate rendering requires approval and keeps real execution locked', async () => {
   const result = await scanMarket(new RisingMarketProvider());
   const message = renderMarketScanResult(result);
 
-  assert.match(message, /TRADE CANDIDATE - MANUAL REVIEW ONLY/);
-  assert.match(message, /Execution: disabled/);
+  assert.match(message, /TRADE CANDIDATE - APPROVAL REQUIRED/);
+  assert.match(message, /Real IQ Option execution remains locked/);
 });
 
 test('analyzer waits when candles have no clear setup', () => {
