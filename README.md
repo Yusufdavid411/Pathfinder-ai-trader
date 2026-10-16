@@ -1,8 +1,9 @@
 # PathFinder AI Trader
 
 PathFinder AI Trader (PAT) is a safety-first, modular trading-analysis platform.
-The current product uses Telegram as its first control surface. It supports an
-approval-based local Demo simulator while keeping real broker execution locked.
+The current product uses Telegram as its first control surface. It supports
+approval-based execution in a logged-in IQ Option Practice account while
+keeping real-money execution locked.
 
 ## Current Capabilities
 
@@ -12,12 +13,13 @@ approval-based local Demo simulator while keeping real broker execution locked.
   and candle-quality rules.
 - Firestore-backed Telegram candidate decisions and per-chat Demo controls for
   account target, stake, arming, disarming, and emergency stop.
-- Signed execution queue and a local Pathfinder Demo bridge that returns
-  simulated receipts to Telegram after the user presses **Accept & Queue**.
+- Signed execution queue, localhost bridge, and Chrome extension that place an
+  individually approved order in IQ Option Practice and return verified
+  platform evidence to Telegram.
 - Trusted FastAPI authentication/profile boundary and Firebase adapters.
 - React/Vite dashboard and Flutter application shells.
-- Read-only IQ Option traderoom DOM reader with a local debug panel. It does
-  not read credentials, inspect private traffic, or place trades.
+- IQ Option Practice connector with a local readiness/debug panel. It never
+  reads credentials, private traffic, cookies, or session tokens.
 
 See [the current build status](docs/BUILD_STATUS.md),
 [the Telegram-first product plan](docs/TELEGRAM_FIRST_PRODUCT_PLAN.md), and
@@ -32,7 +34,7 @@ pathfinder-ai-trader/
   services/             API, AI, broker, learning, and notification services
   firebase/             Cloud Functions, Firestore, Auth, and Storage setup
   packages/             Shared TypeScript contracts and utilities
-  browser/              Read-only IQ Option browser reader
+  browser/              IQ Option Practice browser connector
   broker_engine/        IQ Option snapshot adapter
   market_engine/        Market-data provider interface
   docs/                 Architecture, plans, status, and setup guides
@@ -64,15 +66,17 @@ Run the Python suites with the repository virtual environment on Windows:
 .venv\Scripts\python.exe -m pytest services\api\tests services\notification_engine\tests services\broker_engine\tests
 ```
 
-Build the read-only browser extension bundle:
+Build the browser extension bundle:
 
 ```bash
 npm run build:extension
 ```
 
-## Test the Telegram Demo Flow
+## Test with the real IQ Option Practice account
 
-Keep this computer online, then start the local simulator:
+Build and load `browser/iq-option-reader` as an unpacked Chrome extension. Sign
+in to IQ Option yourself, choose **Practice**, open the traderoom, and confirm
+the Pathfinder panel says `READY`. Then start the local bridge:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File scripts\start_demo_bridge.ps1
@@ -86,8 +90,9 @@ candidate. Use `/execution_status` to confirm that the bridge is online and
 ## Safety Boundary
 
 - Trade candidates are for manual review and are not financial advice.
-- Pathfinder Demo execution is a local simulation; it is not IQ Option Demo.
-- IQ Option Demo and Real execution remain disabled because an authorized order
-  API is not configured.
-- The IQ Option reader only observes explicitly visible page values.
+- A success receipt represents an IQ Option Practice order, not a local fake.
+- IQ Option has no public supported order API for this flow, so the connector
+  uses visible traderoom controls and fails closed if they change.
+- Real-account execution is hard-locked in the extension, local bridge, and
+  cloud completion gate.
 - Secrets belong in ignored local environment files or Firebase Secret Manager.

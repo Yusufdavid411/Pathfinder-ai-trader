@@ -1,4 +1,4 @@
-"""Firebase execution-queue client for the local Pathfinder Demo bridge."""
+"""Firebase execution-queue client for the IQ Option Practice extension."""
 
 from __future__ import annotations
 
@@ -7,12 +7,14 @@ import json
 import os
 from pathlib import Path
 import platform
+import threading
 import time
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from .adapters import PathfinderDemoAdapter
+from .adapters import IqOptionPracticeAdapter
+from .gateway import PracticeExtensionGateway, create_local_server
 from .models import ExecutionCommand, ExecutionReceipt
 
 
@@ -23,6 +25,8 @@ class BridgeConfig:
     complete_url: str
     bridge_id: str
     poll_interval_seconds: float = 2.0
+    local_host: str = "127.0.0.1"
+    local_port: int = 8765
 
     @classmethod
     def load(cls, repo_root: Path | None = None) -> "BridgeConfig":
@@ -43,25 +47,36 @@ class BridgeConfig:
                 "PAT_BRIDGE_COMPLETE_URL", f"{base_url}/bridgeCompleteExecution"
             ),
             bridge_id=values.get(
-                "PAT_BRIDGE_ID", f"pathfinder-demo-{platform.node()}"
+                "PAT_BRIDGE_ID", f"pathfinder-iq-practice-{platform.node()}"
             ),
             poll_interval_seconds=float(values.get("PAT_BRIDGE_POLL_SECONDS", "2")),
+            local_host="127.0.0.1",
+            local_port=int(values.get("PAT_BRIDGE_LOCAL_PORT", "8765")),
         )
 
 
-class DemoExecutionBridge:
+class PracticeExecutionBridge:
     def __init__(
         self,
         config: BridgeConfig,
-        adapter: PathfinderDemoAdapter | None = None,
+        gateway: PracticeExtensionGateway | None = None,
+        adapter: IqOptionPracticeAdapter | None = None,
     ) -> None:
         self.config = config
-        self.adapter = adapter or PathfinderDemoAdapter()
+        self.gateway = gateway or PracticeExtensionGateway()
+        self.adapter = adapter or IqOptionPracticeAdapter(self.gateway)
 
     def run_once(self) -> bool:
+        if not self.gateway.is_ready():
+            return False
         claimed = self._post(
             self.config.claim_url,
-            {"bridge_id": self.config.bridge_id},
+            {
+                "bridge_id": self.config.bridge_id,
+                "executor": "IQ_OPTION_PRACTICE_EXTENSION",
+                "account_mode": "PRACTICE",
+                "extension_ready": True,
+            },
             allow_no_content=True,
         )
         if claimed is None:
@@ -91,14 +106,37 @@ class DemoExecutionBridge:
         return True
 
     def run_forever(self) -> None:
-        while True:
-            try:
-                processed = self.run_once()
-                if processed:
-                    print("Processed one signed Pathfinder Demo execution request.", flush=True)
-            except (HTTPError, URLError, RuntimeError, ValueError) as error:
-                print(f"Demo bridge error: {error}", flush=True)
-            time.sleep(self.config.poll_interval_seconds)
+        local_server = create_local_server(
+            self.gateway,
+            self.config.local_host,
+            self.config.local_port,
+        )
+        server_thread = threading.Thread(
+            target=local_server.serve_forever,
+            name="pathfinder-practice-localhost",
+            daemon=True,
+        )
+        server_thread.start()
+        print(
+            f"IQ Option Practice connector listening on "
+            f"http://{self.config.local_host}:{self.config.local_port}.",
+            flush=True,
+        )
+        try:
+            while True:
+                try:
+                    processed = self.run_once()
+                    if processed:
+                        print(
+                            "Processed one verified IQ Option Practice request.",
+                            flush=True,
+                        )
+                except (HTTPError, URLError, RuntimeError, ValueError) as error:
+                    print(f"IQ Option Practice bridge error: {error}", flush=True)
+                time.sleep(self.config.poll_interval_seconds)
+        finally:
+            local_server.shutdown()
+            local_server.server_close()
 
     def _complete(
         self,
@@ -114,6 +152,10 @@ class DemoExecutionBridge:
                 "success": receipt.success,
                 "broker_order_id": receipt.broker_order_id,
                 "message": receipt.message,
+                "account_mode": receipt.account_mode,
+                "platform_asset": receipt.platform_asset,
+                "evidence": receipt.evidence,
+                "executor": "IQ_OPTION_PRACTICE_EXTENSION",
             },
         )
 
@@ -142,6 +184,10 @@ class DemoExecutionBridge:
         except HTTPError as error:
             detail = error.read().decode("utf-8", errors="replace")
             raise RuntimeError(f"Bridge endpoint returned HTTP {error.code}: {detail}") from error
+
+
+# Compatibility import for existing local scripts; this is no longer a simulator.
+DemoExecutionBridge = PracticeExecutionBridge
 
 
 def _load_environment(path: Path) -> dict[str, str]:

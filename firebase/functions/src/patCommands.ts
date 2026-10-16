@@ -275,7 +275,7 @@ export function respondToTelegramMessage(
       'Scanner: approval-required candidates enabled.',
       'Candidate decisions: Taken, Ignored, and Rejected tracking enabled.',
       'Outcome resolution: pending.',
-      'Pathfinder Demo bridge: use /execution_status.',
+      'IQ Option Practice connector: use /execution_status.',
       'Real IQ Option execution: locked by compliance gate.',
     ].join('\n');
   }
@@ -287,7 +287,7 @@ export function respondToTelegramMessage(
       'Live market data: requested through the configured provider chain.',
       'Eligible results are stored for manual decision and outcome tracking.',
       'PAT will not fabricate BUY/SELL signals or guaranteed results.',
-      'A scan cannot execute. Use Demo + /arm + Accept to queue a simulated bridge order.',
+      'A scan cannot execute by itself. Use Demo + /arm + Accept to approve an IQ Option Practice order.',
     ].join('\n');
   }
 
@@ -338,8 +338,9 @@ export function respondToTelegramMessage(
     return [
       'Compliance Gate',
       'Pathfinder never stores an IQ Option password, OTP, cookie, or session token.',
-      'The current local bridge executes only a Pathfinder simulation.',
-      'Real IQ Option execution requires written authorization and an approved integration method.',
+      'The local extension uses the visible IQ Option traderoom only after Practice mode is verified.',
+      'Passwords, OTPs, cookies, and browser sessions never leave your browser.',
+      'Real IQ Option execution is hard-locked.',
     ].join('\n');
   }
 
@@ -350,7 +351,7 @@ export function respondToTelegramMessage(
       'Candidate decision tracking: enabled.',
       'Outcome resolution and calibrated confidence: pending.',
       'PAT will never fabricate signals or guaranteed results.',
-      'Pathfinder Demo bridge: available when armed.',
+      'IQ Option Practice connector: available when the browser tab is verified and armed.',
       'Real IQ Option execution: locked.',
     ].join('\n');
   }

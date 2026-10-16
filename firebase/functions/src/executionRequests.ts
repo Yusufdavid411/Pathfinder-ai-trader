@@ -54,6 +54,10 @@ export type CompletionInput = {
   success: boolean;
   brokerOrderId?: string;
   message: string;
+  accountMode: string;
+  platformAsset?: string;
+  evidence?: string;
+  executor: string;
   completedAt: Date;
 };
 
@@ -247,22 +251,33 @@ export class FirestoreExecutionRequestRepository {
         return { outcome: 'invalid_state' };
       }
 
-      const status: ExecutionRequestStatus = input.success ? 'filled' : 'failed';
-      const safeMessage = input.message.slice(0, 500);
+      const practiceVerified = isVerifiedPracticeCompletion(input);
+      const success = input.success && practiceVerified;
+      const status: ExecutionRequestStatus = success ? 'filled' : 'failed';
+      const safeMessage = (
+        input.success && !practiceVerified
+          ? 'Success rejected: IQ Option Practice mode was not verified.'
+          : input.message
+      ).slice(0, 500);
       transaction.update(requestReference, {
         status,
-        broker: 'PATHFINDER_DEMO_BRIDGE',
-        broker_order_id: input.brokerOrderId?.slice(0, 100) ?? null,
+        broker: 'IQ_OPTION_PRACTICE_EXTENSION',
+        broker_order_id: success ? (input.brokerOrderId?.slice(0, 100) ?? null) : null,
         execution_message: safeMessage,
+        execution_evidence: input.evidence?.slice(0, 500) ?? null,
+        platform_asset: input.platformAsset?.slice(0, 100) ?? null,
+        account_mode_verified: practiceVerified ? 'PRACTICE' : 'UNVERIFIED',
         completed_at: input.completedAt,
         claim_token_hash: null,
-        simulated: true,
+        simulated: false,
+        practice_order_placed: success,
         real_order_placed: false,
       });
       transaction.update(this.firestore.collection('signals').doc(candidateId), {
         execution_status: status,
         execution_completed_at: input.completedAt,
-        broker_order_id: input.brokerOrderId?.slice(0, 100) ?? null,
+        broker_order_id: success ? (input.brokerOrderId?.slice(0, 100) ?? null) : null,
+        practice_order_placed: success,
         real_order_placed: false,
       });
       transaction.set(
@@ -277,7 +292,13 @@ export class FirestoreExecutionRequestRepository {
       return {
         outcome: 'completed',
         telegramChatId,
-        text: renderCompletionMessage(data, input.success, input.brokerOrderId, safeMessage),
+        text: renderCompletionMessage(
+          data,
+          success,
+          success ? input.brokerOrderId : undefined,
+          safeMessage,
+          input.evidence,
+        ),
       };
     });
   }
@@ -401,7 +422,7 @@ export class FirestoreExecutionRequestRepository {
       .set(
         {
           bridge_id: bridgeId.slice(0, 100),
-          mode: 'PATHFINDER_DEMO_BRIDGE',
+          mode: 'IQ_OPTION_PRACTICE_EXTENSION',
           last_seen_at: now,
           active_request_id: activeRequestId,
           real_execution_enabled: false,
@@ -424,6 +445,12 @@ export function verifyExecutionRequestSignature(
 ): boolean {
   const expected = signExecutionRequest(request, secret);
   return safeSecretEqual(expected, request.signature);
+}
+
+export function isVerifiedPracticeCompletion(
+  input: Pick<CompletionInput, 'accountMode' | 'executor'>,
+): boolean {
+  return input.accountMode === 'PRACTICE' && input.executor === 'IQ_OPTION_PRACTICE_EXTENSION';
 }
 
 export function canonicalExecutionRequest(request: Omit<ExecutionRequest, 'signature'>): string {
@@ -453,8 +480,9 @@ export function renderQueueExecutionResult(result: QueueExecutionResult): string
       `Direction: ${result.request.direction}`,
       `Expiry: ${result.request.expiryMinutes} minutes`,
       `Bridge window: ${result.request.executeNotBefore.toISOString()} to ${result.request.expiresAt.toISOString()}`,
-      'Status: queued for the local Pathfinder Demo bridge.',
-      'Real IQ Option order placed: no.',
+      'Status: queued for the local IQ Option Practice connector.',
+      'A success receipt requires proof of a new IQ Option Practice position.',
+      'Real-account trading: locked.',
     ].join('\n');
   }
 
@@ -494,8 +522,9 @@ function executionRequestToData(request: ExecutionRequest): FirebaseFirestore.Do
     requested_at: request.requestedAt,
     status: request.status,
     signature: request.signature,
-    executor: 'PATHFINDER_DEMO_BRIDGE',
-    simulated: true,
+    executor: 'IQ_OPTION_PRACTICE_EXTENSION',
+    simulated: false,
+    practice_order_placed: false,
     real_order_allowed: false,
     real_order_placed: false,
     claimed_at: null,
@@ -563,16 +592,18 @@ function renderCompletionMessage(
   success: boolean,
   brokerOrderId: string | undefined,
   message: string,
+  evidence: string | undefined,
 ): string {
   return [
-    success ? 'PAT Demo Execution Receipt' : 'PAT Demo Execution Failed',
+    success ? 'IQ Option Practice Trade Receipt' : 'IQ Option Practice Trade Failed',
     `Asset: ${String(requestData?.asset ?? 'unknown')}`,
     `Direction: ${String(requestData?.direction ?? 'unknown')}`,
     `Stake: $${finiteNumber(requestData?.stake)?.toFixed(2) ?? 'unknown'}`,
     `Order ID: ${brokerOrderId ?? 'none'}`,
     `Result: ${message}`,
-    'Environment: Pathfinder local demo simulator.',
-    'IQ Option Demo/Real order placed: no.',
+    `Platform evidence: ${evidence?.slice(0, 300) || 'none'}`,
+    `IQ Option Practice order placed: ${success ? 'yes' : 'no'}.`,
+    'IQ Option Real order placed: no.',
   ].join('\n');
 }
 

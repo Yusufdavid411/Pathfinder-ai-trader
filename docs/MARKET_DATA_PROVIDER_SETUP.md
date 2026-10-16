@@ -47,8 +47,9 @@ After the API key is active, `/scan` will:
 - Evaluate the configured currency pairs.
 - Rank candidate setups by signal strength.
 - Return a Telegram manual-review trade card.
-- Keep direct broker execution disabled; accepted candidates may enter only the
-  signed Pathfinder Demo simulation queue.
+- Keep direct Real-account execution disabled; accepted candidates may enter
+  the signed IQ Option Practice connector queue only when the local extension
+  reports a verified Practice tab.
 
 The scanner must not claim guaranteed accuracy. It can produce candidate trade
 ideas only from real market data and only for manual review.

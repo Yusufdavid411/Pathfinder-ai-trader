@@ -14,11 +14,11 @@ Repository automation scripts live here.
 These scripts read Telegram settings from the repository `.env.local` file. They
 do not print or store the bot token in source-controlled files.
 
-## Demo Execution Bridge
+## IQ Option Practice Execution Bridge
 
-- `start_demo_bridge.ps1` starts the signed local Pathfinder Demo bridge.
-- `demo_bridge_status.ps1` checks whether the Demo bridge is active.
-- `stop_demo_bridge.ps1` stops the Demo bridge.
+- `start_demo_bridge.ps1` starts the signed local IQ Option Practice bridge.
+- `demo_bridge_status.ps1` checks whether the Practice bridge is active.
+- `stop_demo_bridge.ps1` stops the Practice bridge.
 
-The bridge reads `TELEGRAM_WEBHOOK_SECRET` from `.env.local`. It only runs the
-Pathfinder simulator. The IQ Option adapter remains explicitly locked.
+The bridge reads `TELEGRAM_WEBHOOK_SECRET` from `.env.local` and listens only on
+`127.0.0.1:8765` for the Chrome extension. Real-account execution is locked.

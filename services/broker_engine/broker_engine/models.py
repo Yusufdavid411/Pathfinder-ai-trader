@@ -92,6 +92,25 @@ class ExecutionReceipt:
     success: bool
     broker_order_id: str | None
     message: str
+    account_mode: str = "UNVERIFIED"
+    platform_asset: str = ""
+    evidence: str = ""
+
+
+def command_to_extension_payload(command: ExecutionCommand) -> dict[str, Any]:
+    """Return only the signed execution fields needed by the browser extension."""
+    return {
+        "id": command.request_id,
+        "candidate_id": command.candidate_id,
+        "mode": command.mode,
+        "stake": float(command.stake),
+        "asset": command.asset,
+        "direction": command.direction,
+        "expiry_minutes": command.expiry_minutes,
+        "reference_price": float(command.reference_price),
+        "execute_not_before": _javascript_iso(command.execute_not_before),
+        "expires_at": _javascript_iso(command.expires_at),
+    }
 
 
 def _required_string(payload: dict[str, Any], key: str) -> str:

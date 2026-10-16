@@ -1,4 +1,4 @@
-"""Command line entrypoint for the Pathfinder Demo execution bridge."""
+"""Command line entrypoint for the IQ Option Practice execution bridge."""
 
 from __future__ import annotations
 
@@ -6,11 +6,11 @@ import argparse
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-from .bridge import BridgeConfig, DemoExecutionBridge
+from .bridge import BridgeConfig, PracticeExecutionBridge
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Pathfinder local Demo execution bridge")
+    parser = argparse.ArgumentParser(description="Pathfinder IQ Option Practice connector")
     parser.add_argument("command", choices=["run", "once", "status"])
     args = parser.parse_args()
 
@@ -19,11 +19,12 @@ def main() -> None:
         return
 
     config = BridgeConfig.load()
-    bridge = DemoExecutionBridge(config)
+    bridge = PracticeExecutionBridge(config)
 
     if args.command == "status":
-        print("Pathfinder Demo bridge configuration is valid.")
+        print("IQ Option Practice bridge configuration is valid.")
         print(f"Bridge ID: {config.bridge_id}")
+        print(f"Local extension endpoint: http://{config.local_host}:{config.local_port}")
         print("Real IQ Option execution: locked")
         return
 
@@ -46,9 +47,9 @@ def _run_with_file_logs() -> None:
         redirect_stdout(stdout_file),
         redirect_stderr(stderr_file),
     ):
-        print("Starting Pathfinder Demo bridge.", flush=True)
+        print("Starting IQ Option Practice bridge.", flush=True)
         config = BridgeConfig.load()
-        DemoExecutionBridge(config).run_forever()
+        PracticeExecutionBridge(config).run_forever()
 
 
 if __name__ == "__main__":

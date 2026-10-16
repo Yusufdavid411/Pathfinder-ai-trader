@@ -1,7 +1,13 @@
 import { readFile, writeFile } from "node:fs/promises";
 
 const directory = new URL("../browser/iq-option-reader/", import.meta.url);
-const sources = ["normalized-market-data.js", "collector.js", "debug-panel.js", "content-script.js"];
+const sources = [
+  "normalized-market-data.js",
+  "collector.js",
+  "practice-executor.js",
+  "debug-panel.js",
+  "content-script.js",
+];
 const parts = [];
 
 for (const source of sources) {

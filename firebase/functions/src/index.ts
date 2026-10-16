@@ -294,7 +294,7 @@ async function buildTradingControlReply(
       text: [
         renderTradingControlState(state),
         '',
-        `Local Demo bridge: ${bridge.online ? 'ONLINE' : 'OFFLINE'}`,
+        `IQ Option Practice connector: ${bridge.online ? 'ONLINE' : 'OFFLINE'}`,
         `Bridge last seen: ${bridge.lastSeenAt?.toISOString() ?? 'never'}`,
         'Real IQ Option execution: LOCKED.',
       ].join('\n'),
@@ -311,7 +311,7 @@ async function buildTradingControlReply(
         prefix,
         '',
         renderTradingControlState(state),
-        `Local Demo bridge: ${bridge.online ? 'ONLINE' : 'OFFLINE'}`,
+        `IQ Option Practice connector: ${bridge.online ? 'ONLINE' : 'OFFLINE'}`,
         `Bridge last seen: ${bridge.lastSeenAt?.toISOString() ?? 'never'}`,
       ].join('\n'),
       replyMarkup: executionControlKeyboard,
@@ -398,6 +398,15 @@ export const bridgeClaimExecution = onRequest(
       return;
     }
 
+    if (
+      request.body?.executor !== 'IQ_OPTION_PRACTICE_EXTENSION' ||
+      request.body?.account_mode !== 'PRACTICE' ||
+      request.body?.extension_ready !== true
+    ) {
+      response.status(412).json({ error: 'verified_practice_extension_required' });
+      return;
+    }
+
     const bridgeId =
       typeof request.body?.bridge_id === 'string'
         ? request.body.bridge_id
@@ -452,7 +461,9 @@ export const bridgeCompleteExecution = onRequest(
       typeof request.body?.request_id !== 'string' ||
       typeof request.body?.claim_token !== 'string' ||
       typeof request.body?.success !== 'boolean' ||
-      typeof request.body?.message !== 'string'
+      typeof request.body?.message !== 'string' ||
+      typeof request.body?.account_mode !== 'string' ||
+      request.body?.executor !== 'IQ_OPTION_PRACTICE_EXTENSION'
     ) {
       response.status(400).json({ error: 'invalid_completion' });
       return;
@@ -467,6 +478,11 @@ export const bridgeCompleteExecution = onRequest(
           ? request.body.broker_order_id
           : undefined,
       message: request.body.message,
+      accountMode: request.body.account_mode,
+      platformAsset:
+        typeof request.body?.platform_asset === 'string' ? request.body.platform_asset : undefined,
+      evidence: typeof request.body?.evidence === 'string' ? request.body.evidence : undefined,
+      executor: request.body.executor,
       completedAt: new Date(),
     });
 

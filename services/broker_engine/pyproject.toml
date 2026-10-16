@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pathfinder-broker-engine"
 version = "0.1.0"
-description = "Signed local Demo execution bridge for PathFinder AI Trader."
+description = "Signed local IQ Option Practice execution bridge for PathFinder AI Trader."
 requires-python = ">=3.12,<4.0"
 dependencies = []
 

@@ -19,7 +19,7 @@ if (Test-Path -LiteralPath $pidFile) {
     if ($existingPid -match "^\d+$") {
         $existingProcess = Get-Process -Id ([int]$existingPid) -ErrorAction SilentlyContinue
         if ($null -ne $existingProcess) {
-            Write-Output "PAT Demo bridge is already running. PID: $existingPid"
+            Write-Output "PAT IQ Option Practice bridge is already running. PID: $existingPid"
             exit 0
         }
     }
@@ -34,11 +34,11 @@ $startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
 
 $process = [System.Diagnostics.Process]::Start($startInfo)
 if ($null -eq $process) {
-    throw "Failed to start the Pathfinder Demo bridge."
+    throw "Failed to start the IQ Option Practice bridge."
 }
 
 Set-Content -LiteralPath $pidFile -Value $process.Id -Encoding ascii
 
-Write-Output "PAT Demo bridge started. PID: $($process.Id)"
+Write-Output "PAT IQ Option Practice bridge started. PID: $($process.Id)"
 Write-Output "Output log: $stdoutLog"
 Write-Output "Error log: $stderrLog"

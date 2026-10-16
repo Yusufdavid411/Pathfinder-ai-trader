@@ -2,84 +2,60 @@
 
 Updated: 2026-10-16
 
-## Current Stage
+## Current stage
 
-Telegram-first live scanner, decision tracking, and approval-based Pathfinder
-Demo execution.
+Telegram-first live scanning and approval-based execution in the user's actual
+IQ Option **Practice** account through a local Chrome extension.
 
 ## Completed
 
-- Firebase-hosted Telegram webhook and Telegram command menu.
-- Public Telegram access through the configured `TELEGRAM_ALLOWED_CHAT_IDS=*`
-  setting.
-- Twelve Data FX candles with Alpha Vantage fallback support.
-- Explainable EMA, RSI, momentum, and candle-quality scanner.
-- Genuine-candidate-only behavior; PAT does not invent BUY/SELL activity when
-  no setup passes the gates.
-- Firestore-backed candidates with chat-bound, immutable Accepted, Ignored, and
-  Rejected decisions.
-- Per-chat Demo/Real target, `$1-$10` stake, arm, disarm, emergency-stop, and
-  resume controls.
-- HMAC-signed, idempotent execution queue with one active request per chat and a
-  ten-request daily safety cap.
-- Local Pathfinder Demo bridge with claim tokens, stale-claim recovery,
-  heartbeat reporting, and Telegram completion receipts.
-- Real IQ Option requests fail closed. The bridge never reads IQ Option
-  credentials, cookies, OTPs, browser sessions, or private traffic.
-- Firestore client access denied for candidates, trading controls, execution
-  requests, and bridge runtime state.
-- Read-only IQ Option visible-page market reader remains isolated from the
-  execution system.
+- Firebase Telegram webhook, command menu, live FX provider chain, and
+  explainable candidate scanner.
+- Firestore-backed, chat-bound candidate decisions and Demo/Real target,
+  `$1-$10` stake, arm, disarm, daily limit, and emergency-stop controls.
+- HMAC-signed execution queue with single-use claim tokens and stale-claim
+  recovery.
+- Local loopback bridge and Chrome extension. The cloud queue cannot be claimed
+  until a fresh extension heartbeat says the visible account is Practice and
+  required traderoom controls were found.
+- Practice-account, asset, amount, expiry, and direction checks before every
+  action. Real and unverified modes fail closed.
+- Telegram success receipt only after the IQ Option page exposes a new open
+  position or positive execution notification. The old generated simulator
+  receipt path has been removed.
+- No IQ Option password, OTP, cookie, session token, or private network traffic
+  is collected.
+- Real-money execution remains hard-locked in the extension, local bridge, and
+  Firebase completion gate.
 
-## Verification
+## User test flow
 
-- Firebase Functions and Firestore rules: deployed successfully.
-- Telegram command menu: synchronized successfully.
-- Telegram webhook: registered, zero pending updates, and no Telegram error.
-- Protected bridge claim endpoint: HTTP 204 with an empty queue.
-- Local bridge: running with a current Firestore heartbeat and no post-start
-  errors.
-- Real execution heartbeat marker: `false`.
-- Node/TypeScript tests: 41 passed (11 reader + 30 Functions).
-- Python tests: 26 passed (4 API + 17 notification + 5 bridge).
-- Formatting, lint, dashboard build, and extension build: passed.
+1. Run `npm run build:extension`.
+2. Open `chrome://extensions`, enable Developer mode, choose **Load unpacked**,
+   and select `browser/iq-option-reader`.
+3. Log in to IQ Option normally, select **Practice**, and open its traderoom.
+4. Confirm the Pathfinder panel says `READY` and `account_mode: PRACTICE`.
+5. Start `scripts/start_demo_bridge.ps1` and check `/execution_status` in
+   Telegram.
+6. Choose Demo, set `$1`, arm, scan, and press **Accept & Queue** on a current
+   candidate.
+7. Verify the opened position in IQ Option and compare it with the Telegram
+   receipt. Use `/emergency_stop` to block new claims immediately.
 
-## User Test Flow
+## Important boundary
 
-1. Keep the local Pathfinder Demo bridge running.
-2. In Telegram, send `/mode` and choose **Demo**.
-3. Send `/stake 1`.
-4. Send `/arm`.
-5. Send `/scan`.
-6. If a genuine live candidate appears, press **Accept & Queue** before it
-   expires.
-7. Wait for the **PAT Demo Execution Receipt**.
-8. Use `/execution_status` to inspect controls and bridge health.
-9. Use `/emergency_stop` to block new bridge claims immediately.
+IQ Option does not publish a supported public order API for this workflow. This
+release operates the visible traderoom UI in the user's already logged-in
+browser. That makes the Practice test genuine, but the connector is necessarily
+sensitive to IQ Option UI changes. Missing or ambiguous controls cause a safe
+failure. Real-money execution is not enabled.
 
-## Important Boundary
+## Remaining product work
 
-The current executor is a Pathfinder local simulator. It is not the IQ Option
-Demo account and it never places an IQ Option order. Real and IQ Option Demo
-execution stay locked because no authorized IQ Option order API is configured.
-The safe future route is to implement an authorized broker adapter behind the
-existing signed queue without changing the Telegram approval experience.
-
-## Remaining Product Work
-
+- Validate the selector set against the user's current IQ Option traderoom and
+  adjust it if the readiness panel identifies changed controls.
 - Resolve candidate win/loss outcomes from later verified market candles.
-- Add Telegram history and performance summaries after deterministic outcome
-  resolution exists.
-- Add authenticated user-to-Telegram account linking and rate limiting before a
-  broad public launch.
-- Configure mobile/web Firebase Auth and synchronize the same candidate history
-  into those clients.
-- Replace the locked IQ Option adapter only if IQ Option supplies and authorizes
-  a suitable external order interface.
-
-## Local Environment Notes
-
-- Use `.venv\Scripts\python.exe`; global `python` may not be available.
-- Run PowerShell scripts with `powershell.exe -ExecutionPolicy Bypass -File` on
-  this machine.
-- Firebase Blaze billing is enabled; monitor cloud usage.
+- Add Telegram history/performance summaries and authenticated account linking.
+- Synchronize history into the web and mobile clients.
+- Use a supported broker integration for production-grade execution if one
+  becomes available.

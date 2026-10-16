@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   canonicalExecutionRequest,
+  isVerifiedPracticeCompletion,
   renderQueueExecutionResult,
   signExecutionRequest,
   verifyExecutionRequestSignature,
@@ -34,7 +35,7 @@ test('execution request signature covers every execution-critical field', () => 
   assert.match(canonicalExecutionRequest(unsignedRequest), /EUR\/USD\|BUY\|2/);
 });
 
-test('queued execution message labels the local simulation accurately', () => {
+test('queued execution message requires the IQ Option Practice connector', () => {
   const message = renderQueueExecutionResult({
     outcome: 'queued',
     request: {
@@ -43,11 +44,33 @@ test('queued execution message labels the local simulation accurately', () => {
     },
   });
 
-  assert.match(message, /queued for the local Pathfinder Demo bridge/);
-  assert.match(message, /Real IQ Option order placed: no/);
+  assert.match(message, /queued for the local IQ Option Practice connector/);
+  assert.match(message, /success receipt requires proof/);
+  assert.match(message, /Real-account trading: locked/);
 });
 
 test('locked and disarmed gate messages tell the user what to do', () => {
   assert.match(renderQueueExecutionResult({ outcome: 'not_armed' }), /Send \/arm/);
   assert.match(renderQueueExecutionResult({ outcome: 'real_locked' }), /no authorized IQ Option/);
+});
+
+test('completion proof rejects the old simulator and every Real-account result', () => {
+  assert.equal(
+    isVerifiedPracticeCompletion({
+      accountMode: 'PRACTICE',
+      executor: 'IQ_OPTION_PRACTICE_EXTENSION',
+    }),
+    true,
+  );
+  assert.equal(
+    isVerifiedPracticeCompletion({ accountMode: 'PRACTICE', executor: 'PATHFINDER_DEMO_BRIDGE' }),
+    false,
+  );
+  assert.equal(
+    isVerifiedPracticeCompletion({
+      accountMode: 'REAL',
+      executor: 'IQ_OPTION_PRACTICE_EXTENSION',
+    }),
+    false,
+  );
 });

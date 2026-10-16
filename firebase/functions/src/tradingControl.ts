@@ -67,7 +67,7 @@ export function renderTradingControlState(state: TradingControlState): string {
       : state.emergencyStop
         ? 'STOPPED by emergency control.'
         : state.armed
-          ? 'ARMED for Pathfinder demo-bridge orders.'
+          ? 'ARMED for verified IQ Option Practice orders.'
           : 'DISARMED.';
 
   return [

@@ -1,5 +1,9 @@
 # IQ Option Market Data Reader V1
 
+> Historical V1 document. The current V2 extension adds a localhost,
+> Telegram-approved IQ Option Practice execution path. See
+> `browser/iq-option-reader/README.md` and `docs/BUILD_STATUS.md`.
+
 ## What was added and where it fits
 
 V1 establishes this deliberately disconnected path:
